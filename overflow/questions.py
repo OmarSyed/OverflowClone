@@ -97,7 +97,23 @@ def get_question(request, title):
         except Exception as e:
             print(e)
             data = {'status':'error', 'error':'Unable to retrive specified question'}
-            return JsonResponse(data) 
+            return JsonResponse(data)
+    # Delete question if the question's poster is logged in 
+    elif request.method == 'DELETE':
+        try:
+            if 'username' in request.session:
+                account = Account.objects.get(username=request.session['username'])
+                is_deleted = Post.objects.filter(slug=title, poster=account).delete()
+                if is_deleted:
+                    return HttpResponse(status=200) 
+                else:
+                    return HttpResponse(status=403)
+            else:
+                return HttpResponse(status=401) 
+        except Exception as e:
+            print(e)  
+            return HttpResponse(status=401) 
+
 @csrf_exempt
 def up_or_downvote(request, title):
     # default upvote is true
@@ -188,6 +204,7 @@ def search(request):
         timestamp = math.floor(datetime.datetime.utcnow().timestamp() - 14400)
         # Default limit for number of returned questions
         limit = 25
+        search_query = '' 
         json_data = json.loads(request.body)
         # If timestamp is in json request, then set timestamp to that
         if 'timestamp' in json_data:
@@ -198,12 +215,14 @@ def search(request):
                 limit = 100
             else:
                 limit = json_data['limit']
+        if 'q' in json_data:
+            search_query = json_data['q']
         data = {}
         data['status'] = 'OK'
         data['questions'] = []
         # Keep track of how many question you return
         i = 0
-        # Retrieve all questions which were added at or before the timestamp
+        # Retrieve all questions which were added at or before the timestamp, depending on search query
         questions = Post.objects.filter(time_added__lte=timestamp)
         for question in questions:
             if i >= limit:
