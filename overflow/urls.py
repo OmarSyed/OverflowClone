@@ -12,5 +12,8 @@ urlpatterns = [
     path('question/<title>/upvote', questions.up_or_downvote, name='upvote_question'), 
     path('questions/<title>/answers/add', questions.add_comment, name='add_comment'),
     path('questions/<title>/answers', questions.get_comments, name='get_comments'),
+    path('user/<username>', overflow_account.get_user, name='get_user'),
+    path('user/<username>/questions', overflow_account.get_user_questions, name='get_user_questions'),
+    path('user/<username>/answers', overflow_account.get_user_answers, name='get_user_answers'),
     path('search', questions.search, name='search'), 
 ]

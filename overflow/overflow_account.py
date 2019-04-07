@@ -100,3 +100,53 @@ def log_out(request):
             data = {'status': 'error', 'error': 'You are logged out already. '}
             return JsonResponse(data)
 
+@csrf_exempt
+def get_user(request, username):
+    if request.method == 'GET':
+        try:
+            account = Account.objects.get(username=username)
+            data = {} 
+            data['status'] = 'OK'
+            data['user'] = {'email':account.email, 'reputation':account.reputation}
+            return JsonResponse(data) 
+        except:
+            data = {} 
+            data['status'] = 'error'
+            data['user'] = {'email':'', 'reputation': 'Null'} 
+            return JsonResponse(data) 
+
+@csrf_exempt
+def get_user_questions(request, username):
+    data = {} 
+    data['questions'] = [] 
+    if request.method == 'GET':
+        try:
+            account = Account.objects.get(username=username) 
+            all_questions = Post.objects.filter(poster=account) 
+            if all_questions:
+                for question in all_questions:
+                    data['questions'].append({'id':question.slug})
+            data['status'] = 'OK'
+            return JsonResponse(data) 
+        except Exception as e:
+            print(e) 
+            data['status'] = 'error'
+            return JsonResponse(data) 
+
+@csrf_exempt
+def get_user_answers(request, username): 
+    data = {}
+    data['answers'] = [] 
+    if request.method == 'GET':
+        try:
+            account = Account.objects.get(username=username) 
+            all_answers = Comment.objects.filter(poster=account) 
+            if all_answers:
+                for answer in all_answers:
+                    data['answers'].append({'id': answer.comment_url}) 
+            data['status'] = 'OK'
+            return JsonResponse(data) 
+        except Exception as e:
+            print(e) 
+            data['status'] = 'error'
+            return JsonResponse(data) 

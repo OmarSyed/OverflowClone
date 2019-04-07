@@ -1,6 +1,7 @@
 from django.shortcuts import render
 from django.http import HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
+from django.db.models import Q
 from .models import Account, Post, Comment, Tag, ViewerAccounts, ViewerIP, Upvotes
 import json
 from random import choice
@@ -204,6 +205,7 @@ def search(request):
         timestamp = math.floor(datetime.datetime.utcnow().timestamp() - 14400)
         # Default limit for number of returned questions
         limit = 25
+        # Default search query
         search_query = '' 
         json_data = json.loads(request.body)
         # If timestamp is in json request, then set timestamp to that
@@ -223,7 +225,11 @@ def search(request):
         # Keep track of how many question you return
         i = 0
         # Retrieve all questions which were added at or before the timestamp, depending on search query
-        questions = Post.objects.filter(time_added__lte=timestamp)
+        questions = None
+        if search_query == '':
+            questions = Post.objects.filter(time_added__lte=timestamp)
+        else:
+            questions = Post.objects.filter(Q(body__icontains=search_query) | Q(title__icontains=search_query), time_added__lte=timestamp)
         for question in questions:
             if i >= limit:
                 break
