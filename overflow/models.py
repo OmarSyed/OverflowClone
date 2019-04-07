@@ -62,4 +62,12 @@ class ViewerIP(models.Model):
 # Accounts that have viewed a question
 class ViewerAccounts(models.Model):
     viewer = models.ForeignKey(Account, on_delete=models.CASCADE) 
-    post = models.ForeignKey(Post, on_delete=models.CASCADE) 
+    post = models.ForeignKey(Post, on_delete=models.CASCADE)
+
+#Maps upvotes to accounts
+class Upvotes(models.Model):
+    upvoter = models.ForeignKey(Account, on_delete = models.CASCADE) 
+    question = models.ForeignKey(Post, on_delete = models.CASCADE) 
+    value = models.BooleanField(default=True) # True is plus one on upvotes, false is minus one
+
+

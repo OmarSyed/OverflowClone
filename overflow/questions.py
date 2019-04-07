@@ -1,7 +1,7 @@
 from django.shortcuts import render
 from django.http import HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-from .models import Account, Post, Comment, Tag, ViewerAccounts, ViewerIP
+from .models import Account, Post, Comment, Tag, ViewerAccounts, ViewerIP, Upvotes
 import json
 from random import choice
 from string import ascii_uppercase
@@ -98,6 +98,41 @@ def get_question(request, title):
             print(e)
             data = {'status':'error', 'error':'Unable to retrive specified question'}
             return JsonResponse(data) 
+@csrf_exempt
+def up_or_downvote(request, title):
+    # default upvote is true
+    upvote = True
+    if request.method == 'POST':
+        if 'username' in request.session:
+            user = Accounts.objects.get(username = request.session['username'])
+            question = Post.objects.get(slug = title) 
+            json_data = json.loads(request.body) 
+            upvote = json_data['upvote'] 
+            found_upvote = Upvotes.objects.filter(upvoter = user, question = question) 
+            if found_upvote:
+                if found_vote[0].upvote: 
+                    question.score -= 1
+                else:
+                    question.score += 1
+                question.save() 
+                found_upvote[0].delete() 
+            # if no instances of an upvote for this question by this user was found, add upvote to table and make adjustments to question's score based on value of upvote
+            else: 
+                if upvote: 
+                    question.score += 1
+                    question.save() 
+                    Upvotes.objects.create(upvoter=user, question=question, upvote=upvote) 
+                else:
+                    question.score -= 1
+                    question.save() 
+                    Upvotes.objects.create(upvoter=user, question=question, upvote=upvote) 
+                data = {'status' : 'OK'} 
+                return JsonResponse(data) 
+        else:
+            data = {'status' : 'error'} 
+            return JsonResponse(data) 
+        
+                
 
 @csrf_exempt
 def add_comment(request, title):
