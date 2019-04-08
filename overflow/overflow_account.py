@@ -125,7 +125,7 @@ def get_user_questions(request, username):
             all_questions = Post.objects.filter(poster=account) 
             if all_questions:
                 for question in all_questions:
-                    data['questions'].append({'id':question.slug})
+                    data['questions'].append(question.slug)
             data['status'] = 'OK'
             return JsonResponse(data) 
         except Exception as e:
@@ -143,7 +143,7 @@ def get_user_answers(request, username):
             all_answers = Comment.objects.filter(poster=account) 
             if all_answers:
                 for answer in all_answers:
-                    data['answers'].append({'id': answer.comment_url}) 
+                    data['answers'].append(answer.comment_url) 
             data['status'] = 'OK'
             return JsonResponse(data) 
         except Exception as e:
