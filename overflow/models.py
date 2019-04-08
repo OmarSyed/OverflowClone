@@ -64,10 +64,22 @@ class ViewerAccounts(models.Model):
     viewer = models.ForeignKey(Account, on_delete=models.CASCADE) 
     post = models.ForeignKey(Post, on_delete=models.CASCADE)
 
-#Maps upvotes to accounts
-class Upvotes(models.Model):
+#Maps question upvotes to accounts
+class QuestionUpvotes(models.Model):
     upvoter = models.ForeignKey(Account, on_delete = models.CASCADE) 
     question = models.ForeignKey(Post, on_delete = models.CASCADE) 
-    value = models.BooleanField(default=True) # True is plus one on upvotes, false is minus one
 
+#Maps question downvotes to accounts
+class QuestionDownvotes(models.Model):
+    downvoter = models.ForeignKey(Account, on_delete = models.CASCADE)
+    question = models.ForeignKey(Post, on_delete = models.CASCADE) 
 
+#Maps comment upvotes to accounts
+class CommentUpvotes(models.Model):
+    upvoter = models.ForeignKey(Account, on_delete= models.CASCADE) 
+    answer = models.ForeignKey(Comment, on_delete = models.CASCADE) 
+
+#Maps comment downvotes to accounts
+class CommentDownvotes(models.Model):
+    downvoter = models.ForeignKey(Account, on_delete = models.CASCADE)
+    answer = models.ForeignKey(Comment, on_delete = models.CASCADE) 

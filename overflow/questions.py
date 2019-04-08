@@ -2,7 +2,7 @@ from django.shortcuts import render
 from django.http import HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.db.models import Q
-from .models import Account, Post, Comment, Tag, ViewerAccounts, ViewerIP, Upvotes
+from .models import Account, Post, Comment, Tag, ViewerAccounts, ViewerIP, QuestionUpvotes, QuestionDownvotes, CommentUpvotes, CommentDownvotes
 import json
 from random import choice
 from string import ascii_uppercase
@@ -116,7 +116,7 @@ def get_question(request, title):
             return HttpResponse(status=401) 
 
 @csrf_exempt
-def up_or_downvote(request, title):
+def up_or_downvote_question(request, title):
     # default upvote is true
     upvote = True
     if request.method == 'POST':
@@ -125,31 +125,48 @@ def up_or_downvote(request, title):
             question = Post.objects.get(slug = title) 
             json_data = json.loads(request.body) 
             upvote = json_data['upvote'] 
-            found_upvote = Upvotes.objects.filter(upvoter = user, question = question) 
+            found_upvote = QuestionUpvotes.objects.filter(upvoter = user, question = question) 
+            found_downvote = QuestionDownvotes.objects.filter(downvoter = user, question = question) 
             if found_upvote:
-                if found_vote[0].upvote: 
-                    question.score -= 1
-                else:
-                    question.score += 1
+                # if upvote already exists in database, then undo the upvote
+                question.upvotes -= 1
+                found_upvote.delete()
+                # if upvote parameter is false, then subtract 1 from upvote count and add a new downvote to database
+                if not upvote: 
+                    question.upvotes -= 1 
+                    QuestionDownvotes.objects.create(downvoter = user, question = question) # Create a new downvote in the system
                 question.save() 
-                found_upvote[0].delete() 
-            # if no instances of an upvote for this question by this user was found, add upvote to table and make adjustments to question's score based on value of upvote
+            elif found_downvote:
+                # if a downvote from this user already exists, then undo the downvote
+                question.upvotes += 1
+                found_downvote.delete() 
+                # if the upvote parameter is true, then add 1 to upvote count and add a new upvote to the database 
+                if upvote:
+                    question.upvotes += 1
+                    QuestionUpvotes.objects.create(upvoter = user, question = question) 
+                question.save() 
             else: 
+                 # if no instances of an upvote/downvote for this question by this user was found, add upvote/downvote to table and make adjustments to question's score based on value of upvote
                 if upvote: 
                     question.score += 1
                     question.save() 
-                    Upvotes.objects.create(upvoter=user, question=question, upvote=upvote) 
+                    QuestionUpvotes.objects.create(upvoter=user, question=question) 
                 else:
                     question.score -= 1
                     question.save() 
-                    Upvotes.objects.create(upvoter=user, question=question, upvote=upvote) 
+                    QuestionDownvotes.objects.create(downvoter=user, question=question) 
                 data = {'status' : 'OK'} 
                 return JsonResponse(data) 
         else:
             data = {'status' : 'error'} 
             return JsonResponse(data) 
-        
-                
+
+#@csrf_exempt 
+#def up_or_downvote_answer(request, url):
+#    if request.method == 'POST':
+#        try:
+#        
+#        except Exception as e:
 
 @csrf_exempt
 def add_comment(request, title):

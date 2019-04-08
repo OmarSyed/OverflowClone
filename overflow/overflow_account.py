@@ -3,6 +3,7 @@ from django.http import HttpResponse, JsonResponse
 from django.core.mail import send_mail
 from django.conf import settings
 from django.views.decorators.csrf import csrf_exempt
+from django.core.validators import validate_email
 from .models import Account, Post, Comment, Tag, ViewerAccounts, ViewerIP
 import json
 from random import choice
@@ -30,6 +31,8 @@ def add_user(request):
             if check_if_account_exists(username, email):
                 data = {'status' :'error', 'error': 'Account already exists'}
                 return JsonResponse(data)
+            # Make sure email is valid first, if not then exception is thrown
+            validate_email(email) 
             new_account = Account.objects.create(username=username, password=password, email=email,verification_key=random_key)
             data = {'status': 'OK', 'error':''}
             message = 'validation key: <' + random_key + '>'
