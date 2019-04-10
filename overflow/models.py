@@ -18,11 +18,11 @@ class Post(models.Model):
     post_id = models.AutoField(primary_key=True) 
     poster = models.ForeignKey(Account, on_delete=models.CASCADE)
     title = models.CharField(max_length=200)
-    body = models.CharField(max_length=60000) 
+    body = models.TextField() 
     views = models.IntegerField(default=0)
     answer_count = models.IntegerField(default=0)
     score = models.IntegerField(default=0)
-    slug = models.SlugField()
+    slug = models.SlugField(max_length=255)
     time_added = models.IntegerField(default=0)  
     
     def get_absolute_url(self):
@@ -44,7 +44,7 @@ class Comment(models.Model):
     comment_url = models.CharField(max_length=15, null=False, default=get_random_string(length=15))
     poster = models.ForeignKey(Account, on_delete=models.CASCADE) 
     post = models.ForeignKey(Post, on_delete=models.CASCADE)
-    comment = models.CharField(max_length=60000)
+    comment = models.TextField() 
     score = models.IntegerField(default=0) 
     time_posted = models.IntegerField(default=0) 
     accepted = models.BooleanField(default=False) 

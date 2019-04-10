@@ -1,9 +1,11 @@
 from django.shortcuts import render
-from django.http import HttpResponse, JsonResponse
+from django.http import HttpResponse, JsonResponse, HttpResponseBadRequest
 from django.views.decorators.csrf import csrf_exempt
 from django.db.models import Q
 from .models import Account, Post, Comment, Tag, ViewerAccounts, ViewerIP, QuestionUpvotes, QuestionDownvotes, CommentUpvotes, CommentDownvotes
 import json
+import operator
+from functools import reduce
 from random import choice
 from string import ascii_uppercase
 import math
@@ -14,8 +16,12 @@ def add_question(request):
     if 'username' in request.session:
         try:
             # Get the appropriate data from json POST request form
-            json_data = json.loads(request.body)
-            title = json_data['title']
+            json_data = json.loads(request.body) 
+            #print(json_data) 
+            title = json_data['title'] 
+            if len(title) > 255:
+                title = title[:255]
+                print(title)
             body = json_data['body']
             tags = json_data['tags']
             # Get the account associated with the current user's session
@@ -29,12 +35,16 @@ def add_question(request):
                 new_tag =  Tag(associated_post=new_post, tag=tag)
                 new_tag.save()
             data = {'status': 'OK','id':new_post.slug, 'error': ''}
+            #print(data) 
             return JsonResponse(data)
         except Exception as e:
+            print(e)
             data = {'status': 'error', 'error':'Error posting question'}
+            print(data)
             return JsonResponse(data)
     else:
         data = {'status': 'error', 'error': 'You are not logged in'}
+        print(data) 
         return JsonResponse(data)
 
 @csrf_exempt
@@ -56,17 +66,22 @@ def get_question(request, title):
                     new_viewer.save()
                 tag_set = Tag.objects.filter(associated_post = question)
                 for tag in tag_set:
-                    tags.append(tag.tag)
+                    added_tag = tag.tag
+                    tags.append(added_tag)
                 accepted_answer = Comment.objects.filter(post = question, accepted = True)
                 answer_id = None
                 if not accepted_answer:
                     answer_id = 'Null'
                 else:
                     answer_id = accepted_answer.comment_id
+                id_ = question.slug
+                title = question.title
+                body = question.body 
                 data = {}
                 data['status'] = 'OK'
-                data['question'] = {'id': question.slug, 'user':{'username':question.poster.username, 'reputation':question.poster.reputation},'title':question.title, 'body': question.body, 'score':question.score, 'view_count':question.views, 'answer_count': question.answer_count, 'timestamp': question.time_added, 'media':[], 'tags':tags, 'accepted_answer_id':answer_id}
+                data['question'] = {'id': id_, 'user':{'username':question.poster.username, 'reputation':question.poster.reputation},'title':title, 'body': body, 'score':question.score, 'view_count':question.views, 'answer_count': question.answer_count, 'timestamp': question.time_added, 'media':[], 'tags':tags, 'accepted_answer_id':answer_id}
                 data['error'] = ''
+                print(data) 
                 return JsonResponse(data)
             else:
                 tags = []
@@ -83,6 +98,7 @@ def get_question(request, title):
                     viewer_set = ViewerIP.objects.filter(post=question)
                 tag_set = Tag.objects.filter(associated_post = question)
                 for tag in tag_set:
+                    #print(tag.tag)
                     tags.append(tag.tag)
                 accepted_answer = Comment.objects.filter(post = question, accepted = True)
                 answer_id = None
@@ -90,9 +106,12 @@ def get_question(request, title):
                     answer_id = 'Null'
                 else:
                     answer_id = accepted_answer.comment_id
+                print(question.slug)
+                print(question.title)
+                print(question.body) 
                 data = {}
                 data['status'] = 'OK'
-                data['question'] = {'id': question.slug, 'user':{'username':'', 'reputation':''},'title':question.title, 'score':question.score, 'body': question.body, 'view_count':question.views, 'answer_count': question.answer_count, 'timestamp': question.time_added, 'media':[], 'tags':tags, 'accepted_answer_id':answer_id}
+                data['question'] = {'id': question.slug, 'user':{'username':'', 'reputation':''},'title': question.title, 'score':question.score, 'body': question.body, 'view_count':question.views, 'answer_count': question.answer_count, 'timestamp': question.time_added, 'media':[], 'tags':tags, 'accepted_answer_id':answer_id}
                 data['error'] = ''
                 return JsonResponse(data)
         except Exception as e:
@@ -103,17 +122,21 @@ def get_question(request, title):
     elif request.method == 'DELETE':
         try:
             if 'username' in request.session:
-                account = Account.objects.get(username=request.session['username'])
-                is_deleted = Post.objects.filter(slug=title, poster=account).delete()
+                account = Account.objects.get(username=request.session['username']) 
+                is_deleted = Post.objects.filter(slug=title, poster=account)
                 if is_deleted:
+                    print("success")
+                    is_deleted.delete() 
                     return HttpResponse(status=200) 
                 else:
+                    print('incorrect account') 
                     return HttpResponse(status=403)
             else:
+                print('not logged in') 
                 return HttpResponse(status=401) 
         except Exception as e:
             print(e)  
-            return HttpResponse(status=401) 
+            return HttpResponseBadRequest 
 
 @csrf_exempt
 def up_or_downvote_question(request, title):
@@ -129,20 +152,20 @@ def up_or_downvote_question(request, title):
             found_downvote = QuestionDownvotes.objects.filter(downvoter = user, question = question) 
             if found_upvote:
                 # if upvote already exists in database, then undo the upvote
-                question.upvotes -= 1
+                question.score -= 1
                 found_upvote.delete()
                 # if upvote parameter is false, then subtract 1 from upvote count and add a new downvote to database
                 if not upvote: 
-                    question.upvotes -= 1 
+                    question.score -= 1 
                     QuestionDownvotes.objects.create(downvoter = user, question = question) # Create a new downvote in the system
                 question.save() 
             elif found_downvote:
                 # if a downvote from this user already exists, then undo the downvote
-                question.upvotes += 1
+                question.score += 1
                 found_downvote.delete() 
                 # if the upvote parameter is true, then add 1 to upvote count and add a new upvote to the database 
                 if upvote:
-                    question.upvotes += 1
+                    question.score += 1
                     QuestionUpvotes.objects.create(upvoter = user, question = question) 
                 question.save() 
             else: 
@@ -160,13 +183,6 @@ def up_or_downvote_question(request, title):
         else:
             data = {'status' : 'error'} 
             return JsonResponse(data) 
-
-#@csrf_exempt 
-#def up_or_downvote_answer(request, url):
-#    if request.method == 'POST':
-#        try:
-#        
-#        except Exception as e:
 
 @csrf_exempt
 def add_comment(request, title):
@@ -194,6 +210,48 @@ def add_comment(request, title):
     else:
         data = {'status' :'error', 'error':'You are not logged in'}
         return JsonResponse(data)
+
+@csrf_exempt
+def up_or_downvote_answer(request, url):
+    data = {} 
+    if request.method == 'POST':
+        if 'username' in request.session:
+            try:
+                json_data = json.loads(request.body)
+                comment = Comment.objects.get(comment_url=url)
+                user = Account.objects.get(username=request.session['username']) 
+                upvote = json_data['upvote']
+                found_upvote = CommentUpvotes.objects.filter(answer=comment, upvoter=user) 
+                found_downvote = CommentDownvotes.objects.filter(answer=comment, downvoter=user) 
+                if found_upvote:
+                    comment.score -= 1 
+                    found_upvote.delete() 
+                    if not upvote:
+                        comment.score -= 1
+                        CommentDownvotes.objects.create(answer=comment, downvoter=user) 
+                    comment.save() 
+                elif found_downvote:
+                    comment.score += 1
+                    found_downvote.delete() 
+                    if upvote:
+                        comment.score += 1
+                        CommentUpvotes.objects.create(answer=comment, upvoter=user) 
+                    comment.save() 
+                else: 
+                    if upvote:
+                        CommentUpvotes.objects.create(answer=comment, upvoter=user) 
+                        comment.score += 1 
+                        comment.save() 
+                    else:
+                        CommentDownvotes.objects.create(answer=comment, downvoter=user) 
+                        comment.score -= 1
+                        comment.save()
+                data['status'] = 'OK'
+                return JsonResponse(data) 
+            except Exception as e:
+                print(e) 
+                data['status'] = 'error'
+                return JsonResponse(data) 
 
 @csrf_exempt
 def get_comments(request, title):
@@ -225,6 +283,7 @@ def search(request):
         # Default search query
         search_query = '' 
         json_data = json.loads(request.body)
+        #print(json_data) 
         # If timestamp is in json request, then set timestamp to that
         if 'timestamp' in json_data:
             timestamp = math.floor(json_data['timestamp'])
@@ -246,7 +305,12 @@ def search(request):
         if search_query == '':
             questions = Post.objects.filter(time_added__lte=timestamp)
         else:
-            questions = Post.objects.filter(Q(body__icontains=search_query) | Q(title__icontains=search_query), time_added__lte=timestamp)
+            q_list = [Q(body__icontains=' '+search_query+' '), Q(title__icontains=' '+search_query+' ') ]
+            words = search_query.split(' ') 
+            if len(words) > 1:
+                for word in words:
+                    q_list.extend([Q(body__icontains=' '+word+' '), Q(title__icontains=' '+word+' ')])
+            questions = Post.objects.filter(reduce(operator.or_, q_list), time_added__lte=timestamp)
         for question in questions:
             if i >= limit:
                 break
@@ -260,9 +324,11 @@ def search(request):
                 accepted_answer_id = associated_comments.comment_url
             else:
                 accepted_answer_id = 'Null'
-            data['questions'].append({'id':question.slug, 'user': {'username':question.poster.username, 'reputation':question.poster.reputation}, 'title':question.title, 'body':question.body, 'score':question.score, 'view_count':question.views, 'answer_count':question.answer_count, 'timestamp':question.time_added, 'media':[], 'tags': tags, 'accepted_answer_id':accepted_answer_id})
+            data['questions'].append({'id':question.slug, 'user': {'username':question.poster.username, 'reputation':question.poster.reputation}, 'title':question.title, 'body':question.body, 'score':question.score, 'view_count':question.views, 'answer_count':question.answer_count, 'timestamp':question.time_added, 'media': [], 'tags': tags, 'accepted_answer_id':accepted_answer_id})
             i += 1
         data['error'] = ''
+        #for a in data['questions']:
+        #   print(a) 
         return JsonResponse(data)
     except Exception as e:
         print(e)
