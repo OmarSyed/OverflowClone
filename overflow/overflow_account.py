@@ -17,6 +17,10 @@ def check_if_account_exists(user_name, emailaddr):
     return False
 
 @csrf_exempt
+def default(request):
+    return HttpResponse("Hello, welcome to the front page")
+
+@csrf_exempt
 def add_user(request):
     if request.method == 'POST':
         # Get the appropriate json request data

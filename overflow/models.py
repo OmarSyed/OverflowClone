@@ -1,7 +1,7 @@
 from django.db import models
 from django.urls import reverse
 from django.template.defaultfilters import slugify
-from django_unixdatetimefield import UnixDateTimeField
+#from django_unixdatetimefield import UnixDateTimeField
 from django.utils.crypto import get_random_string
 
 # Create your models here.

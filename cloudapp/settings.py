@@ -25,7 +25,7 @@ SECRET_KEY = 'uz-_xgos&ww4$#k=h8-!iy!^dc-ho!i%_lqe@#&571umd1i6kh'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['152.44.44.63', 'cloud.cse356.compas.cs.stonybrook.edu']
+ALLOWED_HOSTS = ['152.44.40.66', 'cloud.cse356.compas.cs.stonybrook.edu']
 
 
 # Application definition

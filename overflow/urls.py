@@ -3,6 +3,7 @@ from . import overflow_account
 from . import questions
 
 urlpatterns = [
+    path('', overflow_account.default, name='default'),
     path('adduser', overflow_account.add_user, name='adduser'),
     path('login', overflow_account.log_in, name='login'),
     path('logout', overflow_account.log_out, name='logout'),
