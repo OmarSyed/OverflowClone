@@ -25,7 +25,8 @@ SECRET_KEY = 'uz-_xgos&ww4$#k=h8-!iy!^dc-ho!i%_lqe@#&571umd1i6kh'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['152.44.40.66', 'cloud.cse356.compas.cs.stonybrook.edu']
+ALLOWED_HOSTS = ['152.44.40.66']
+
 
 
 # Application definition
@@ -77,10 +78,11 @@ WSGI_APPLICATION = 'cloudapp.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'OPTIONS':{
-            'read_default_file':'/etc/mysql/my.cnf',
-            'charset': 'utf8mb4',
-        },
+        'NAME':'forum_data', 
+        'USER': 'root',
+        'PASSWORD': 'SeaWolv3s!',
+        'HOST': '152.44.33.149',
+        'PORT':'3306',
     }
 }
 
@@ -119,11 +121,11 @@ USE_TZ = True
 
 #Email configuration
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_USE_TLS = True
-EMAIL_PORT = 587
-EMAIL_HOST_USER = 'johnsmith5427689@gmail.com'
-EMAIL_HOST_PASSWORD = 'omarsyed123'
+EMAIL_HOST = 'helloworld.cse356.compas.cs.stonybrook.edu'
+#EMAIL_HOST_USER = 'ubuntu@helloworld.cse356.compas.cs.stonybrook.edu'
+#EMAIL_HOST_PASSWORD = 'SeaWolv3s'
+EMAIL_PORT = 25
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/2.1/howto/static-files/

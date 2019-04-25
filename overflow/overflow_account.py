@@ -36,21 +36,24 @@ def add_user(request):
                 data = {'status' :'error', 'error': 'Account already exists'}
                 return JsonResponse(data)
             # Make sure email is valid first, if not then exception is thrown
-            validate_email(email) 
+            validate_email(email)
+            print("line 40")
             new_account = Account.objects.create(username=username, password=password, email=email,verification_key=random_key)
             data = {'status': 'OK', 'error':''}
             message = 'validation key: <' + random_key + '>'
+            print("line 44")
             # send a verification email out to the email of the new user
-            sent_message = send_mail('Verification key', message, 'johnsmith5427689@gmail.com', [email], fail_silently=False)
+            sent_message = send_mail('Verification key', message, 'ubuntu@helloworld.cse356.compas.cs.stonybrook.edu', [email], fail_silently=False)
+            print("line 47") 
             if sent_message == 0:
                 data['status'] = 'error'
                 data['error'] = 'Error sending out email'
-                return JsonResponse(data)
+                return JsonResponse(data, status=403)
             return JsonResponse(data)
         except Exception as e:
             print(e)
             response_data = {'status': 'error', 'error': 'Unable to create account'}
-            return JsonResponse(response_data)
+            return JsonResponse(response_data, status=401)
 
 @csrf_exempt
 def verify(request):

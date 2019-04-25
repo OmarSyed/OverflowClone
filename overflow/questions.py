@@ -41,11 +41,11 @@ def add_question(request):
             print(e)
             data = {'status': 'error', 'error':'Error posting question'}
             print(data)
-            return JsonResponse(data)
+            return JsonResponse(data, status=401)
     else:
         data = {'status': 'error', 'error': 'You are not logged in'}
         print(data) 
-        return JsonResponse(data)
+        return JsonResponse(data, status=401)
 
 @csrf_exempt
 def get_question(request, title):
@@ -117,7 +117,7 @@ def get_question(request, title):
         except Exception as e:
             print(e)
             data = {'status':'error', 'error':'Unable to retrive specified question'}
-            return JsonResponse(data)
+            return JsonResponse(data, status=401)
     # Delete question if the question's poster is logged in 
     elif request.method == 'DELETE':
         try:
@@ -182,7 +182,7 @@ def up_or_downvote_question(request, title):
                 return JsonResponse(data) 
         else:
             data = {'status' : 'error'} 
-            return JsonResponse(data) 
+            return JsonResponse(data, status=401) 
 
 @csrf_exempt
 def add_comment(request, title):
@@ -206,10 +206,10 @@ def add_comment(request, title):
         except Exception as e:
             print(e) 
             data = {'status':'error', 'id':'', 'error':'Error retrieving question'}
-            return JsonResponse(data) 
+            return JsonResponse(data, status=401) 
     else:
         data = {'status' :'error', 'error':'You are not logged in'}
-        return JsonResponse(data)
+        return JsonResponse(data, status=401)
 
 @csrf_exempt
 def up_or_downvote_answer(request, url):
@@ -251,7 +251,26 @@ def up_or_downvote_answer(request, url):
             except Exception as e:
                 print(e) 
                 data['status'] = 'error'
-                return JsonResponse(data) 
+                return JsonResponse(data, status=401) 
+        else:
+            data['status'] = 'error'
+            data['error'] = 'You must be logged in to vote'
+            return JsonResponse(data,status=401) 
+
+@csrf_exempt
+def accept_comment(request, url):
+    if request.method == 'POST':
+        if 'username' in request.session:
+            answer = Comment.objects.filter(comment_url=url)
+            if answer.post.poster.username != request.session['username']:
+                data = {'status': 'error'}
+                return JsonResponse(data, status=401) 
+            answer.accepted = True
+            answer.save() 
+            data = {'status':'OK'}
+            return JsonResponse(data) 
+        else:
+            return HttpResponse(status_code=403) 
 
 @csrf_exempt
 def get_comments(request, title):
@@ -270,7 +289,7 @@ def get_comments(request, title):
     except Exception as e:
         print(e)
         data = {'answers': [], 'status':'error', 'error':'error getting comments for question'}
-        return JsonResponse(data)
+        return JsonResponse(data, status=401)
 
 
 
@@ -333,4 +352,4 @@ def search(request):
     except Exception as e:
         print(e)
         data = {'status':'error', 'questions':[], 'error':'Trouble with your query'}
-        return JsonResponse(data)           
+        return JsonResponse(data, status=401)           
