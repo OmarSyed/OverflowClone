@@ -83,3 +83,18 @@ class CommentUpvotes(models.Model):
 class CommentDownvotes(models.Model):
     downvoter = models.ForeignKey(Account, on_delete = models.CASCADE)
     answer = models.ForeignKey(Comment, on_delete = models.CASCADE) 
+
+#Media metadata
+class Media(models.Model):
+    file_id = models.CharField(max_length=100)
+    file_name = models.TextField() 
+
+#Media associated with questions
+class QuestionMedia(models.Model):
+    question = models.ForeignKey(Post, on_delete = models.CASCADE)
+    media = models.ForeignKey(Media, on_delete = models.CASCADE) 
+
+#Media associated with comments
+class CommentMedia(models.Model):
+    comment = models.ForeignKey(Comment, on_delete= models.CASCADE)
+    media = models.ForeignKey(Media, on_delete=models.CASCADE)
