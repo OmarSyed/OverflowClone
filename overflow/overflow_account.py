@@ -34,7 +34,7 @@ def add_user(request):
             # Check to see if account with the same username or email already exists
             if check_if_account_exists(username, email):
                 data = {'status' :'error', 'error': 'Account already exists'}
-                return JsonResponse(data)
+                return JsonResponse(data, status=401)
             # Make sure email is valid first, if not then exception is thrown
             validate_email(email)
             new_account = Account.objects.create(username=username, password=password, email=email,verification_key=random_key)
@@ -67,7 +67,7 @@ def verify(request):
         return JsonResponse(data)
     except:
         data = {'status':'error', 'error': 'Could not verify backdoor key'}
-        return JsonResponse(data)
+        return JsonResponse(data, status=401)
 
 @csrf_exempt
 def log_in(request):
@@ -75,7 +75,7 @@ def log_in(request):
         # Check first whether the username is already logged in 
         if 'username' in request.session:
             data = {'status':'error', 'error': 'You are logged in already'}
-            return JsonResponse(data) 
+            return JsonResponse(data, status=401) 
         # Retrieve appropriate json data 
         json_data = json.loads(request.body)
         username = json_data['username']
@@ -86,7 +86,7 @@ def log_in(request):
             # If account is not verified then return error response
             if not account.verified: 
                 response_data = {'status': 'error', 'error' : 'Account is not verified, please check email and verify account.'}
-                return JsonResponse(response_data)
+                return JsonResponse(response_data, status=401)
             else:
                 request.session['username'] = username
                 response_data = {'status' : 'OK', 'error': ''}
@@ -105,7 +105,7 @@ def log_out(request):
             return JsonResponse(data)
         except:
             data = {'status': 'error', 'error': 'You are logged out already. '}
-            return JsonResponse(data)
+            return JsonResponse(data, status=401)
 
 @csrf_exempt
 def get_user(request, username):
@@ -120,7 +120,7 @@ def get_user(request, username):
             data = {} 
             data['status'] = 'error'
             data['user'] = {'email':'', 'reputation': 'Null'} 
-            return JsonResponse(data) 
+            return JsonResponse(data, status=401) 
 
 @csrf_exempt
 def get_user_questions(request, username):
@@ -138,7 +138,7 @@ def get_user_questions(request, username):
         except Exception as e:
             print(e) 
             data['status'] = 'error'
-            return JsonResponse(data) 
+            return JsonResponse(data, status=401) 
 
 @csrf_exempt
 def get_user_answers(request, username): 
@@ -156,4 +156,4 @@ def get_user_answers(request, username):
         except Exception as e:
             print(e) 
             data['status'] = 'error'
-            return JsonResponse(data) 
+            return JsonResponse(data, status=401) 
