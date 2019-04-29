@@ -24,7 +24,9 @@ class Post(models.Model):
     score = models.IntegerField(default=0)
     slug = models.SlugField(max_length=255)
     time_added = models.IntegerField(default=0)  
-    
+    has_media = models.BooleanField(default=False) 
+    solved = models.BooleanField(default=False) 
+
     def get_absolute_url(self):
         return reverse('exact_post', kwargs={'slug' : self.slug})
 
