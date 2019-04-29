@@ -11,6 +11,65 @@ from string import ascii_uppercase
 import math
 import datetime
 
+def create_search_query(tags, has_media, accepted, query, sort_by, timestamp):
+    sql_statement = 'SELECT * FROM overflow_post WHERE time_added <= '+str(timestamp)
+    if len(tags) > 1:
+        sql_statement += ' AND post_id = (SELECT T1.associated_post_id FROM '
+        num_tags = 1
+        # Creating the necessary tables in the subquery
+        while num_tags <= len(tags):
+            if num_tags == len(tags):
+                sql_statement += 'overflow_tag T'+str(num_tags)
+            else:
+                sql_statement += 'overflow_tag T'+str(num_tags)+', '
+            num_tags += 1
+        num_tags = 2
+        # Creating the conditions for the subquery
+        sql_statement += ' WHERE '
+        # getting the rows with the same question_id
+        while num_tags <= len(tags):
+            if num_tags == len(tags):
+                sql_statement += 'T1.associated_post_id = T'+str(num_tags)+'.associated_post_id'
+            else:
+                sql_statement += 'T1.associated_post_id = T'+str(num_tags)+'.associated_post_id AND '
+            num_tags += 1
+        num_tags = 1
+        while num_tags <= len(tags):
+            if num_tags == len(tags):
+                sql_statement += 'T'+str(num_tags)+'.tag = '+tags[num_tags-1]+') '
+            else:
+                sql_statement ++ 'T'+str(num_tags)+'.tag = '+tags[num_tags-1]+' AND '
+            num_tags += 1
+        if has_media:
+            sql_statement += ' AND has_media = 1 '
+        if accepted:
+            sql_statement += ' AND solved = 1'
+    elif len(tags) == 1:
+        sql_statement += ' AND post_id = (SELECT T1.associated_post_id FROM '
+        sql_statement += 'overflow_tag T1 WHERE T1.tag = ' + tags[0] + ')'
+        if has_media:
+            sql_statement += ' AND has_media = 1'
+        if accepted:
+            sql_statement += ' AND solved = 1 '
+    else:
+        if has_media:
+            sql_statement += ' AND has_media = 1 '
+        if accepted: 
+            sql_statement += ' AND solved = 1 ' 
+    if query != '':
+        word_list = query.split(' ')
+        sql_statement += ' AND (body ILIKE "%'+query+'%" OR title ILIKE "%'+query+'%" '
+        for word in word_list:
+            sql_statement += 'OR body ILIKE "%'+word+'%" OR title ILIKE "%'+word+'%" '
+        sql_statement += ')' 
+    if sort_by == 'timestamp':
+        sql_statement =+ ' ORDER BY time_added DESC;' 
+    else:
+        sql_statement += ' ORDER BY score DESC;'
+    print (sql_statement) 
+    return sql_statement
+
+
 @csrf_exempt
 def add_question(request):
     if 'username' in request.session:
@@ -81,7 +140,6 @@ def get_question(request, title):
                 data['status'] = 'OK'
                 data['question'] = {'id': id_, 'user':{'username':question.poster.username, 'reputation':question.poster.reputation},'title':title, 'body': body, 'score':question.score, 'view_count':question.views, 'answer_count': question.answer_count, 'timestamp': question.time_added, 'media':[], 'tags':tags, 'accepted_answer_id':answer_id}
                 data['error'] = ''
-                print(data) 
                 return JsonResponse(data)
             else:
                 tags = []
@@ -105,10 +163,7 @@ def get_question(request, title):
                 if not accepted_answer:
                     answer_id = 'Null'
                 else:
-                    answer_id = accepted_answer.comment_id
-                print(question.slug)
-                print(question.title)
-                print(question.body) 
+                    answer_id = accepted_answer.comment_id 
                 data = {}
                 data['status'] = 'OK'
                 data['question'] = {'id': question.slug, 'user':{'username':'', 'reputation':''},'title': question.title, 'score':question.score, 'body': question.body, 'view_count':question.views, 'answer_count': question.answer_count, 'timestamp': question.time_added, 'media':[], 'tags':tags, 'accepted_answer_id':answer_id}
@@ -301,6 +356,14 @@ def search(request):
         limit = 25
         # Default search query
         search_query = '' 
+        # Default ordering 
+        order_by = "score"
+        # tags to search for
+        tags = []
+        # has media
+        has_media = False
+        # question has only accepted answers
+        accepted = False
         json_data = json.loads(request.body)
         #print(json_data) 
         # If timestamp is in json request, then set timestamp to that
@@ -314,6 +377,14 @@ def search(request):
                 limit = json_data['limit']
         if 'q' in json_data:
             search_query = json_data['q']
+        if 'order_by' in json_data:
+            order_by = json_data['order_by'] 
+        if 'tags' in json_data:
+            tags = json_data['tags']
+        if 'has_media' in json_data:
+            has_media = json_data['has_media'] 
+        if 'accepted' in json_data:
+            accepted = json_data['accepted']
         data = {}
         data['status'] = 'OK'
         data['questions'] = []
@@ -322,8 +393,51 @@ def search(request):
         # Retrieve all questions which were added at or before the timestamp, depending on search query
         questions = None
         if search_query == '':
-            questions = Post.objects.filter(time_added__lte=timestamp)
+            sql_statement = 'SELECT * FROM overflow_post WHERE post_id = (SELECT T1.associated_post_id FROM '
+            if len(tags) > 1:
+                num_tags = 1
+                while num_tags <= len(tags):
+                    if num_tags == len(tags):
+                        sql_statement += 'overflow_tag T'+str(num_tags)
+                    else:
+                        sql_statement += 'overflow_tag T'+str(num_tags)+', '
+                num_tags = 2
+                sql_statement += ' WHERE '
+                while num_tags <= len(tags):
+                    if num_tags == len(tags):
+                        sql_statement += 'T1.associated_post_id = T'+str(num_tags)+'.associated_post_id'
+                    else:
+                        sql_statement += 'T1.associated_post_id = T'+str(num_tags)+'.associated_post_id AND '
+                num_tags = 1
+                while num_tags <= len(tags):
+                    if num_tags == len(tags):
+                        sql_statement += 'T'+str(num_tags)+'.tag = '+tags[num_tags-1]+') '
+                    else:
+                        sql_statement ++ 'T1.tag = '+tags[num_tags-1]+' AND '
+                if has_media:
+                    sql_statement += 'AND has_media = 1 '
+                if accepted:
+                    sql_statement += ' AND solved = 1'
+                sql_statement += ';' 
+            elif len(tags) == 1:
+                sql_statement += 'overflow_tag T1 WHERE T1.tag = ' + tags[0] + ')'
+                if has_media:
+                    sql_statement += ' AND has_media = 1'
+                if accepted:
+                    sql_statement += ' AND solved = 1 '
+                sql_statement += ';' 
+            else:
+                if has_media and accepted:
+                    questions = Post.objects.filter(time_added__lte=timestamp, has_media=True, solved=True)
+                elif has_media and not accepted:
+                    questions = Post.objects.filter(time_added__lte=timestamp, has_media=True) 
+                elif not has_media and accepted:
+                    questions = Post.objects.filter(time_added__lte=timestamp, solved=True) 
+                else:
+                    questions = Post.objects.filter(time_added__lte=timestamp) 
         else:
+            if len(tags) > 0:
+                Tags.objects.get(
             q_list = [Q(body__icontains=' '+search_query+' '), Q(title__icontains=' '+search_query+' ') ]
             words = search_query.split(' ') 
             if len(words) > 1:
