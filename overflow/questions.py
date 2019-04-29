@@ -392,58 +392,9 @@ def search(request):
         i = 0
         # Retrieve all questions which were added at or before the timestamp, depending on search query
         questions = None
-        if search_query == '':
-            sql_statement = 'SELECT * FROM overflow_post WHERE post_id = (SELECT T1.associated_post_id FROM '
-            if len(tags) > 1:
-                num_tags = 1
-                while num_tags <= len(tags):
-                    if num_tags == len(tags):
-                        sql_statement += 'overflow_tag T'+str(num_tags)
-                    else:
-                        sql_statement += 'overflow_tag T'+str(num_tags)+', '
-                num_tags = 2
-                sql_statement += ' WHERE '
-                while num_tags <= len(tags):
-                    if num_tags == len(tags):
-                        sql_statement += 'T1.associated_post_id = T'+str(num_tags)+'.associated_post_id'
-                    else:
-                        sql_statement += 'T1.associated_post_id = T'+str(num_tags)+'.associated_post_id AND '
-                num_tags = 1
-                while num_tags <= len(tags):
-                    if num_tags == len(tags):
-                        sql_statement += 'T'+str(num_tags)+'.tag = '+tags[num_tags-1]+') '
-                    else:
-                        sql_statement ++ 'T1.tag = '+tags[num_tags-1]+' AND '
-                if has_media:
-                    sql_statement += 'AND has_media = 1 '
-                if accepted:
-                    sql_statement += ' AND solved = 1'
-                sql_statement += ';' 
-            elif len(tags) == 1:
-                sql_statement += 'overflow_tag T1 WHERE T1.tag = ' + tags[0] + ')'
-                if has_media:
-                    sql_statement += ' AND has_media = 1'
-                if accepted:
-                    sql_statement += ' AND solved = 1 '
-                sql_statement += ';' 
-            else:
-                if has_media and accepted:
-                    questions = Post.objects.filter(time_added__lte=timestamp, has_media=True, solved=True)
-                elif has_media and not accepted:
-                    questions = Post.objects.filter(time_added__lte=timestamp, has_media=True) 
-                elif not has_media and accepted:
-                    questions = Post.objects.filter(time_added__lte=timestamp, solved=True) 
-                else:
-                    questions = Post.objects.filter(time_added__lte=timestamp) 
-        else:
-            if len(tags) > 0:
-                Tags.objects.get(
-            q_list = [Q(body__icontains=' '+search_query+' '), Q(title__icontains=' '+search_query+' ') ]
-            words = search_query.split(' ') 
-            if len(words) > 1:
-                for word in words:
-                    q_list.extend([Q(body__icontains=' '+word+' '), Q(title__icontains=' '+word+' ')])
-            questions = Post.objects.filter(reduce(operator.or_, q_list), time_added__lte=timestamp)
+        # using create_sql_statement
+        sql_statement = create_sql_statement(tags, has_media, accepted, search_query, order_by, timestamp)
+        questions = Post.objects.raw(sql_statement) 
         for question in questions:
             if i >= limit:
                 break
