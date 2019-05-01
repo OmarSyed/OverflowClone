@@ -90,6 +90,7 @@ class CommentDownvotes(models.Model):
 class Media(models.Model):
     file_id = models.CharField(max_length=100) 
     file_name = models.TextField() 
+    uploader = models.ForeignKey(Account, on_delete = models.CASCADE)
 
 #Media associated with questions
 class QuestionMedia(models.Model):

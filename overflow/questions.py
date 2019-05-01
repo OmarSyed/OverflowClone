@@ -83,6 +83,7 @@ def add_question(request):
                 print(title)
             body = json_data['body']
             tags = json_data['tags']
+            media = json_data['media'] 
             # Get the account associated with the current user's session
             account = Account.objects.get(username=request.session['username'])
             timeadded = math.floor(datetime.datetime.utcnow().timestamp() - 14400)
