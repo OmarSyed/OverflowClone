@@ -1,4 +1,4 @@
-from .models import Media, QuestionMedia, CommentMedia
+from .models import Account, Media, QuestionMedia, CommentMedia
 from django.utils.crypto import get_random_string
 from django.http import HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -12,6 +12,7 @@ def addMedia(request):
     if request.method == 'POST':
         if 'username' in request.session:
             try:
+                account = Account.objects.get(username=request.session['username']) 
                 file_id = get_random_string(length=12)
                 binary = request.FILES['content'] 
                 file_name_type = binary.name.split(".")
@@ -27,7 +28,7 @@ def addMedia(request):
                 new_file.close() 
         # delete the file in memory 
                 default_storage.delete(path) 
-                savefile = Media.objects.create(file_id=file_id, file_name=binary.name) 
+                savefile = Media.objects.create(file_id=file_id, file_name=binary.name, uploader=account) 
                 return JsonResponse({'status':'OK', 'id':file_id, 'error':''})
             except Exception as e:
                 print(e) 
@@ -42,31 +43,12 @@ def addMedia(request):
 def getMedia(request, media_id):
     if request.method == 'GET':
         if 'username' in request.session:
-            metadata = Media.objects.get(file_id = media_id)
-            file_type = metadata.file_name.split('.')[1]
+            account = Account.objects.get(username=request.session['username']) 
+            metadata = Media.objects.filter(file_id = media_id, uploader=account)
+            if not metadata:
+                return HttpResponse(status=404)
             #print(metadata.file_name) 
             #print(file_type)
-            response_type = None
-            if file_type == 'jpg' or file_type == 'jpeg' or file_type == 'png':
-                response_type = 'image/'
-            else:
-                response_type = 'video/'
-        #print('response type: ' + response_type)
-            response_header = None
-            if file_type == 'mp4':
-                response_header = 'mp4'
-            elif file_type == 'mov':
-                response_header = 'quicktime'
-            elif file_type == 'avi':
-                response_header = 'x-msvideo'
-            elif file_type == 'wmv':
-                response_header = 'x-ms-wmv'
-            elif file_type == 'flv':
-                response_header = 'x-flv' 
-            elif file_type == '3gp':
-                response_header = '3gpp' 
-            else:
-                response_header = file_type
             try:
             #print('file header: ' + response_header) 
                 server = ftplib.FTP('152.44.32.64')
@@ -88,7 +70,7 @@ def getMedia(request, media_id):
             #print('line 82')
             #print('Content-type: '+ response_type+response_header)
                 server.close() 
-                response = HttpResponse(content, content_type=response_type+response_header)
+                response = HttpResponse(content)
                 return response
             except Exception as e:
                 print(e) 
