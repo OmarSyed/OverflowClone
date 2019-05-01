@@ -66,7 +66,7 @@ def create_search_query(tags, has_media, accepted, query, sort_by, timestamp):
         sql_statement =+ ' ORDER BY time_added DESC;' 
     else:
         sql_statement += ' ORDER BY score DESC;'
-    print (sql_statement) 
+    #print (sql_statement) 
     return sql_statement
 
 
@@ -99,11 +99,11 @@ def add_question(request):
         except Exception as e:
             print(e)
             data = {'status': 'error', 'error':'Error posting question'}
-            print(data)
+            #print(data)
             return JsonResponse(data, status=401)
     else:
         data = {'status': 'error', 'error': 'You are not logged in'}
-        print(data) 
+        #print(data) 
         return JsonResponse(data, status=401)
 
 @csrf_exempt
@@ -113,6 +113,7 @@ def get_question(request, title):
             # Check whether the user is currently logged in or not. If not, they will be treated as a guest and identified by IP
             if 'username' in request.session:
                 tags = []
+                media = []
                 question = Post.objects.get(slug = title)
                 username = request.session['username']
                 # Retrieve account associated with logged in user from the database
@@ -123,10 +124,14 @@ def get_question(request, title):
                     question.save()
                     new_viewer = ViewerAccounts(viewer = account, post = question)
                     new_viewer.save()
+                # retrieve set of tags and media from mysql
                 tag_set = Tag.objects.filter(associated_post = question)
+                media_set = QuestionMedia.objects.filter(post=question).prefetch_related('media')
                 for tag in tag_set:
                     added_tag = tag.tag
                     tags.append(added_tag)
+                for medias in media_set:
+                    media.append(medias.media.file_id) # append all related media ids 
                 accepted_answer = Comment.objects.filter(post = question, accepted = True)
                 answer_id = None
                 if not accepted_answer:
@@ -138,14 +143,15 @@ def get_question(request, title):
                 body = question.body 
                 data = {}
                 data['status'] = 'OK'
-                data['question'] = {'id': id_, 'user':{'username':question.poster.username, 'reputation':question.poster.reputation},'title':title, 'body': body, 'score':question.score, 'view_count':question.views, 'answer_count': question.answer_count, 'timestamp': question.time_added, 'media':[], 'tags':tags, 'accepted_answer_id':answer_id}
+                data['question'] = {'id': id_, 'user':{'username':question.poster.username, 'reputation':question.poster.reputation},'title':title, 'body': body, 'score':question.score, 'view_count':question.views, 'answer_count': question.answer_count, 'timestamp': question.time_added, 'media':media, 'tags':tags, 'accepted_answer_id':answer_id}
                 data['error'] = ''
                 return JsonResponse(data)
             else:
                 tags = []
+                media = [] 
                 # Get the current user's IP address
                 ip_address = request.META['REMOTE_ADDR']
-                question = Post.objects.get(slug = title)
+                question = Post.objects.get(slug = title).prefetch_related('poster') 
                 account = question.poster
                 # Check if the IP address is associated with this question in the database
                 if not ViewerIP.objects.filter(ip_address = ip_address, post = question):
@@ -155,9 +161,12 @@ def get_question(request, title):
                     new_viewer.save()
                     viewer_set = ViewerIP.objects.filter(post=question)
                 tag_set = Tag.objects.filter(associated_post = question)
+                media_set = QuestionMedia.objects.filter(question = question).prefetch_related('media') 
                 for tag in tag_set:
                     #print(tag.tag)
                     tags.append(tag.tag)
+                for medias in media_set:
+                    media.append(medias.media.file_id) 
                 accepted_answer = Comment.objects.filter(post = question, accepted = True)
                 answer_id = None
                 if not accepted_answer:
@@ -166,7 +175,7 @@ def get_question(request, title):
                     answer_id = accepted_answer.comment_id 
                 data = {}
                 data['status'] = 'OK'
-                data['question'] = {'id': question.slug, 'user':{'username':'', 'reputation':''},'title': question.title, 'score':question.score, 'body': question.body, 'view_count':question.views, 'answer_count': question.answer_count, 'timestamp': question.time_added, 'media':[], 'tags':tags, 'accepted_answer_id':answer_id}
+                data['question'] = {'id': question.slug, 'user':{'username':question.poster.username, 'reputation':question.poster.reputation},'title': question.title, 'score':question.score, 'body': question.body, 'view_count':question.views, 'answer_count': question.answer_count, 'timestamp': question.time_added, 'media':media, 'tags':tags, 'accepted_answer_id':answer_id}
                 data['error'] = ''
                 return JsonResponse(data)
         except Exception as e:
@@ -200,7 +209,7 @@ def up_or_downvote_question(request, title):
     if request.method == 'POST':
         if 'username' in request.session:
             user = Accounts.objects.get(username = request.session['username'])
-            question = Post.objects.get(slug = title) 
+            question = Post.objects.get(slug = title).prefetch_related('poster')  
             json_data = json.loads(request.body) 
             upvote = json_data['upvote'] 
             found_upvote = QuestionUpvotes.objects.filter(upvoter = user, question = question) 
@@ -208,6 +217,10 @@ def up_or_downvote_question(request, title):
             if found_upvote:
                 # if upvote already exists in database, then undo the upvote
                 question.score -= 1
+                # decrement the poster's reputation if it is greater than 1 
+                if question.poster.reputation > 1:
+                    question.poster.reputation -= 1
+                    question.poster.save() 
                 found_upvote.delete()
                 # if upvote parameter is false, then subtract 1 from upvote count and add a new downvote to database
                 if not upvote: 
@@ -217,6 +230,9 @@ def up_or_downvote_question(request, title):
             elif found_downvote:
                 # if a downvote from this user already exists, then undo the downvote
                 question.score += 1
+                # increment the reputation of the poster
+                question.poster.reputation += 1
+                question.poster.save() 
                 found_downvote.delete() 
                 # if the upvote parameter is true, then add 1 to upvote count and add a new upvote to the database 
                 if upvote:
@@ -227,10 +243,15 @@ def up_or_downvote_question(request, title):
                  # if no instances of an upvote/downvote for this question by this user was found, add upvote/downvote to table and make adjustments to question's score based on value of upvote
                 if upvote: 
                     question.score += 1
+                    question.poster.reputation += 1
+                    question.poster.save()
                     question.save() 
                     QuestionUpvotes.objects.create(upvoter=user, question=question) 
                 else:
                     question.score -= 1
+                    if question.poster.reputation > 1:
+                        question.poster.reputation -= 1
+                        question.poster.save() 
                     question.save() 
                     QuestionDownvotes.objects.create(downvoter=user, question=question) 
                 data = {'status' : 'OK'} 
