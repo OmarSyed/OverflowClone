@@ -1,6 +1,5 @@
 from django.urls import path
-from . import overflow_account
-from . import questions
+from . import overflow_account, questions, media
 
 urlpatterns = [
     path('', overflow_account.default, name='default'),
@@ -17,5 +16,8 @@ urlpatterns = [
     path('user/<username>', overflow_account.get_user, name='get_user'),
     path('user/<username>/questions', overflow_account.get_user_questions, name='get_user_questions'),
     path('user/<username>/answers', overflow_account.get_user_answers, name='get_user_answers'),
-    path('search', questions.search, name='search'), 
+    path('search', questions.search, name='search'),
+    path('addmedia', media.addMedia, name = 'add_media'),
+    path('media/<media_id>', media.getMedia, name='get_media'), 
+    
 ]

@@ -88,7 +88,7 @@ class CommentDownvotes(models.Model):
 
 #Media metadata
 class Media(models.Model):
-    file_id = models.CharField(max_length=100)
+    file_id = models.CharField(max_length=100) 
     file_name = models.TextField() 
 
 #Media associated with questions
