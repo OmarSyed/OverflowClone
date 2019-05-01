@@ -2,7 +2,7 @@ from django.shortcuts import render
 from django.http import HttpResponse, JsonResponse, HttpResponseBadRequest
 from django.views.decorators.csrf import csrf_exempt
 from django.db.models import Q
-from .models import Account, Post, Comment, Tag, ViewerAccounts, ViewerIP, QuestionUpvotes, QuestionDownvotes, CommentUpvotes, CommentDownvotes
+from .models import Account, Post, Comment, Tag, ViewerAccounts, ViewerIP, QuestionUpvotes, QuestionDownvotes, CommentUpvotes, CommentDownvotes, Media, QuestionMedia, CommentMedia
 import json
 import operator
 from functools import reduce
@@ -83,13 +83,24 @@ def add_question(request):
                 print(title)
             body = json_data['body']
             tags = json_data['tags']
-            media = json_data['media'] 
+            media = None
+            if 'media' in json_data:
+                media = json_data['media'] 
             # Get the account associated with the current user's session
             account = Account.objects.get(username=request.session['username'])
             timeadded = math.floor(datetime.datetime.utcnow().timestamp() - 14400)
+            new_post = Post.objects.create(poster=account, title=title, body=body, time_added=timeadded)
+            if media != None:
+                try:
+                    for ids in media:
+                        retrieved_media = Media.objects.get(file_id = ids, uploader=account) 
+                        QuestionMedia.objects.create(question=new_post, media=retrieved_media) 
+                except Exception as e:
+                    print (e) 
+                    data = {'status':'error', 'error':'One of the media files either does not belong to you or does not exist'}
+                    new_post.delete() 
+                    return JsonResponse(data, status=401) 
             # Add a new question to the database with user account associated with the question
-            new_post = Post(poster=account, title=title, body=body, time_added=timeadded)
-            new_post.save()
             i = 1
             for tag in tags:
                 new_tag =  Tag(associated_post=new_post, tag=tag)
@@ -267,7 +278,10 @@ def add_comment(request, title):
     if 'username' in request.session:
         try:
             json_data = json.loads(request.body) 
-            body = json_data['body'] 
+            body = json_data['body']
+            media = None
+            if 'media' in json_data:
+                media = json_data['media'] 
             # Get the question associated with the title in the url 
             question = Post.objects.get(slug=title)
             question.answer_count += 1
@@ -278,6 +292,18 @@ def add_comment(request, title):
             timestamp = math.floor(datetime.datetime.utcnow().timestamp() - 14400)
             # Add the user's comment to the database
             new_comment = Comment.objects.create(comment_url=comment_url, poster=account, post=question, comment=body, time_posted=timestamp)
+            media_objects = []
+            if media != None:
+                try:
+                    for ids in media:
+                        media_file = Media.objects.get(file_id=ids, uploader=account) 
+                        media_objects.append(CommentMedia.objects.create(comment=new_comment, media=media_file))
+                except Exception as e:
+                    data = {'status':'error', 'error':'One of these media files does not belong to you or does not exist', 'id':''} 
+                    new_comment.delete()
+                    for objects in media_objects:
+                        objects.delete() 
+                    return JsonResponse(data, status=401) 
             data = {'status':'OK', 'id':comment_url, 'error':''} 
             return JsonResponse(data) 
         except Exception as e:
@@ -295,13 +321,16 @@ def up_or_downvote_answer(request, url):
         if 'username' in request.session:
             try:
                 json_data = json.loads(request.body)
-                comment = Comment.objects.get(comment_url=url)
+                comment = Comment.objects.get(comment_url=url).prefetch_related('poster') 
                 user = Account.objects.get(username=request.session['username']) 
                 upvote = json_data['upvote']
                 found_upvote = CommentUpvotes.objects.filter(answer=comment, upvoter=user) 
                 found_downvote = CommentDownvotes.objects.filter(answer=comment, downvoter=user) 
                 if found_upvote:
-                    comment.score -= 1 
+                    comment.score -= 1
+                    if comment.poster.reputation > 1:
+                        comment.poster.reputation -= 1
+                        comment.poster.save()
                     found_upvote.delete() 
                     if not upvote:
                         comment.score -= 1
@@ -309,6 +338,8 @@ def up_or_downvote_answer(request, url):
                     comment.save() 
                 elif found_downvote:
                     comment.score += 1
+                    comment.poster.reputation += 1
+                    comment.poster.save() 
                     found_downvote.delete() 
                     if upvote:
                         comment.score += 1
@@ -317,11 +348,16 @@ def up_or_downvote_answer(request, url):
                 else: 
                     if upvote:
                         CommentUpvotes.objects.create(answer=comment, upvoter=user) 
-                        comment.score += 1 
+                        comment.score += 1
+                        comment.poster.reputation += 1
+                        comment.poster.save() 
                         comment.save() 
                     else:
                         CommentDownvotes.objects.create(answer=comment, downvoter=user) 
                         comment.score -= 1
+                        if comment.poster.reputation > 1:
+                            comment.poster.reputation += 1
+                            comment.poster.save() 
                         comment.save()
                 data['status'] = 'OK'
                 return JsonResponse(data) 
@@ -338,7 +374,7 @@ def up_or_downvote_answer(request, url):
 def accept_comment(request, url):
     if request.method == 'POST':
         if 'username' in request.session:
-            answer = Comment.objects.filter(comment_url=url)
+            answer = Comment.objects.filter(comment_url=url).prefetch_related('post') 
             if answer.post.poster.username != request.session['username']:
                 data = {'status': 'error'}
                 return JsonResponse(data, status=401) 
@@ -356,10 +392,15 @@ def get_comments(request, title):
         question = Post.objects.get(slug=title)
         data = {}
         data['answers'] = []
+
         # Get all comments associated with the question
-        all_comments = Comment.objects.filter(post=question)
+        all_comments = Comment.objects.filter(post=question).prefetch_related('poster') 
         for comment in all_comments:
-            data['answers'].append({'id': comment.comment_url, 'user':comment.poster.username, 'body':comment.comment, 'score':comment.score, 'is_accepted':comment.accepted, 'timestamp':comment.time_posted, 'media':[]})
+            media = []
+            all_media = CommentMedia.objects.filter(comment=comment).prefetch_related('media') 
+            for medias in all_media:
+                media.append(medias.media.file_id) 
+            data['answers'].append({'id': comment.comment_url, 'user':comment.poster.username, 'body':comment.comment, 'score':comment.score, 'is_accepted':comment.accepted, 'timestamp':comment.time_posted, 'media':media})
         data['status'] = 'OK'
         data['error'] = ''
         return JsonResponse(data)
@@ -430,7 +471,11 @@ def search(request):
                 accepted_answer_id = associated_comments.comment_url
             else:
                 accepted_answer_id = 'Null'
-            data['questions'].append({'id':question.slug, 'user': {'username':question.poster.username, 'reputation':question.poster.reputation}, 'title':question.title, 'body':question.body, 'score':question.score, 'view_count':question.views, 'answer_count':question.answer_count, 'timestamp':question.time_added, 'media': [], 'tags': tags, 'accepted_answer_id':accepted_answer_id})
+            media = []
+            all_media = QuestionMedia.objects.filter(question=question).prefetch_related('media') 
+            for medias in all_media:
+                media.append(medias.media.file_id) 
+            data['questions'].append({'id':question.slug, 'user': {'username':question.poster.username, 'reputation':question.poster.reputation}, 'title':question.title, 'body':question.body, 'score':question.score, 'view_count':question.views, 'answer_count':question.answer_count, 'timestamp':question.time_added, 'media': media, 'tags': tags, 'accepted_answer_id':accepted_answer_id})
             i += 1
         data['error'] = ''
         #for a in data['questions']:
