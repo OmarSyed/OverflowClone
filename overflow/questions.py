@@ -57,10 +57,18 @@ def create_search_query(tags, has_media, accepted, query, sort_by, timestamp):
         if accepted: 
             sql_statement += ' AND solved = 1 ' 
     if query != '':
+        query = query.lower() 
         word_list = query.split(' ')
-        sql_statement += ' AND (body ILIKE "%'+query+'%" OR title ILIKE "%'+query+'%" '
+        full_query = ' '.join(x.strip() for x in word_list) 
+        sql_statement += ' AND ('
+        i = 0
         for word in word_list:
-            sql_statement += 'OR body ILIKE "%'+word+'%" OR title ILIKE "%'+word+'%" '
+            if i == 0:
+                sql_statement += "body LIKE '%%"+word+"%%' OR title LIKE '%%"+word+"%%' "
+            else:
+                sql_statement += "OR body LIKE '%%"+word+"%%' OR title LIKE '%%"+word+"%%' "
+            i += 1
+        sql_statement += "OR body LIKE '%%"+full_query+"%%' OR title LIKE '%%"+full_query+"%%'"
         sql_statement += ')' 
     if sort_by == 'timestamp':
         sql_statement =+ ' ORDER BY time_added DESC;' 
@@ -456,7 +464,8 @@ def search(request):
         # Retrieve all questions which were added at or before the timestamp, depending on search query
         questions = None
         # using create_sql_statement
-        sql_statement = create_sql_statement(tags, has_media, accepted, search_query, order_by, timestamp)
+        sql_statement = create_search_query(tags, has_media, accepted, search_query, order_by, timestamp)
+        print(sql_statement) 
         questions = Post.objects.raw(sql_statement) 
         for question in questions:
             if i >= limit:
