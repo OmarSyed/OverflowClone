@@ -56,22 +56,10 @@ def create_search_query(tags, has_media, accepted, query, sort_by, timestamp):
             sql_statement += ' AND has_media = 1 '
         if accepted: 
             sql_statement += ' AND solved = 1 ' 
-    if query != '':
-        query = query.lower() 
-        word_list = query.split(' ')
-        full_query = ' '.join(x.strip() for x in word_list) 
-        sql_statement += ' AND ('
-        i = 0
-        for word in word_list:
-            if i == 0:
-                sql_statement += "body LIKE '%%"+word+"%%' OR title LIKE '%%"+word+"%%' "
-            else:
-                sql_statement += "OR body LIKE '%%"+word+"%%' OR title LIKE '%%"+word+"%%' "
-            i += 1
-        sql_statement += "OR body LIKE '%%"+full_query+"%%' OR title LIKE '%%"+full_query+"%%'"
-        sql_statement += ')' 
+    if query != '': 
+        sql_statement += " AND MATCH (title,body) AGAINST ('"+ query + "' IN BOOLEAN MODE)" 
     if sort_by == 'timestamp':
-        sql_statement =+ ' ORDER BY time_added DESC;' 
+       sql_statement =+ ' ORDER BY time_added DESC;' 
     else:
         sql_statement += ' ORDER BY score DESC;'
     #print (sql_statement) 
@@ -146,7 +134,7 @@ def get_question(request, title):
                     new_viewer.save()
                 # retrieve set of tags and media from mysql
                 tag_set = Tag.objects.filter(associated_post = question)
-                media_set = QuestionMedia.objects.filter(post=question).prefetch_related('media')
+                media_set = QuestionMedia.objects.filter(question=question).prefetch_related('media')
                 for tag in tag_set:
                     added_tag = tag.tag
                     tags.append(added_tag)
@@ -171,7 +159,7 @@ def get_question(request, title):
                 media = [] 
                 # Get the current user's IP address
                 ip_address = request.META['REMOTE_ADDR']
-                question = Post.objects.get(slug = title).prefetch_related('poster') 
+                question = Post.objects.get(slug = title) 
                 account = question.poster
                 # Check if the IP address is associated with this question in the database
                 if not ViewerIP.objects.filter(ip_address = ip_address, post = question):
@@ -426,8 +414,8 @@ def search(request):
         # Default limit for number of returned questions
         limit = 25
         # Default search query
-        search_query = '' 
-        # Default ordering 
+        search_query = ''
+        # Default ordering
         order_by = "score"
         # tags to search for
         tags = []
@@ -436,7 +424,7 @@ def search(request):
         # question has only accepted answers
         accepted = False
         json_data = json.loads(request.body)
-        #print(json_data) 
+        print(json_data)
         # If timestamp is in json request, then set timestamp to that
         if 'timestamp' in json_data:
             timestamp = math.floor(json_data['timestamp'])
@@ -449,11 +437,11 @@ def search(request):
         if 'q' in json_data:
             search_query = json_data['q']
         if 'order_by' in json_data:
-            order_by = json_data['order_by'] 
+            order_by = json_data['order_by']
         if 'tags' in json_data:
             tags = json_data['tags']
         if 'has_media' in json_data:
-            has_media = json_data['has_media'] 
+            has_media = json_data['has_media']
         if 'accepted' in json_data:
             accepted = json_data['accepted']
         data = {}
@@ -465,8 +453,8 @@ def search(request):
         questions = None
         # using create_sql_statement
         sql_statement = create_search_query(tags, has_media, accepted, search_query, order_by, timestamp)
-        print(sql_statement) 
-        questions = Post.objects.raw(sql_statement) 
+        print(sql_statement)
+        questions = Post.objects.raw(sql_statement)
         for question in questions:
             if i >= limit:
                 break
@@ -481,16 +469,16 @@ def search(request):
             else:
                 accepted_answer_id = 'Null'
             media = []
-            all_media = QuestionMedia.objects.filter(question=question).prefetch_related('media') 
+            all_media = QuestionMedia.objects.filter(question=question).prefetch_related('media')
             for medias in all_media:
-                media.append(medias.media.file_id) 
+                media.append(medias.media.file_id)
             data['questions'].append({'id':question.slug, 'user': {'username':question.poster.username, 'reputation':question.poster.reputation}, 'title':question.title, 'body':question.body, 'score':question.score, 'view_count':question.views, 'answer_count':question.answer_count, 'timestamp':question.time_added, 'media': media, 'tags': tags, 'accepted_answer_id':accepted_answer_id})
             i += 1
         data['error'] = ''
-        #for a in data['questions']:
-        #   print(a) 
+       #for a in data['questions']:
+        print(len(data['questions']))
         return JsonResponse(data)
     except Exception as e:
         print(e)
         data = {'status':'error', 'questions':[], 'error':'Trouble with your query'}
-        return JsonResponse(data, status=401)           
+        return JsonResponse(data, status=401)
