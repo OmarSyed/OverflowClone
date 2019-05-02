@@ -28,6 +28,7 @@ def add_user(request):
         username = json_data['username']
         password = json_data['password']
         email = json_data['email']
+        print(json_data)
         try:
             # Create random key 
             random_key = ''.join(choice(ascii_uppercase) for i in range(12)) 
@@ -45,7 +46,9 @@ def add_user(request):
             if sent_message == 0:
                 data['status'] = 'error'
                 data['error'] = 'Error sending out email'
+                print(data['error']) 
                 return JsonResponse(data, status=403)
+            print(data)
             return JsonResponse(data)
         except Exception as e:
             print(e)
@@ -58,6 +61,7 @@ def verify(request):
     json_data = json.loads(request.body)
     email = json_data['email']
     key = json_data['key']
+    print(json_data)
     try:
         # Retrieve the account with the corresponding email and set verified field = true
         account = Account.objects.get(email=email, verification_key=key)
