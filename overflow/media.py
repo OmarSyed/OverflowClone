@@ -44,31 +44,18 @@ def getMedia(request, media_id):
     if request.method == 'GET':
         if 'username' in request.session:
             account = Account.objects.get(username=request.session['username']) 
-            metadata = Media.objects.filter(file_id = media_id, uploader=account)
-            if not metadata:
-                return HttpResponse(status=404)
-            #print(metadata.file_name) 
-            #print(file_type)
+            metadata = Media.objects.get(file_id = media_id, uploader=account)
             try:
-            #print('file header: ' + response_header) 
                 server = ftplib.FTP('152.44.32.64')
                 server.login('user1', 'omarsyed123')
                 path = '/var/www/overflow/OverflowClone/static/'+metadata.file_name
-            #print('line 70')
                 new_file = open(path, mode='wb')
-            #print('line 72')
                 server.retrbinary('RETR '+ metadata.file_name, new_file.write) 
-            #print('line 74')
-                new_file.close() 
-            #print('line 76') 
+                new_file.close()
                 new_file = open(path, mode='rb') 
-            #print('line 78') 
                 content = new_file.read() 
                 new_file.close() 
-            #print('line 80') 
                 default_storage.delete(path)
-            #print('line 82')
-            #print('Content-type: '+ response_type+response_header)
                 server.close() 
                 response = HttpResponse(content)
                 return response

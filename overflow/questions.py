@@ -14,7 +14,7 @@ import datetime
 def create_search_query(tags, has_media, accepted, query, sort_by, timestamp):
     sql_statement = 'SELECT * FROM overflow_post WHERE time_added <= '+str(timestamp)
     if len(tags) > 1:
-        sql_statement += ' AND post_id = (SELECT T1.associated_post_id FROM '
+        sql_statement += ' AND post_id IN (SELECT T1.associated_post_id FROM '
         num_tags = 1
         # Creating the necessary tables in the subquery
         while num_tags <= len(tags):
@@ -28,25 +28,22 @@ def create_search_query(tags, has_media, accepted, query, sort_by, timestamp):
         sql_statement += ' WHERE '
         # getting the rows with the same question_id
         while num_tags <= len(tags):
-            if num_tags == len(tags):
-                sql_statement += 'T1.associated_post_id = T'+str(num_tags)+'.associated_post_id'
-            else:
-                sql_statement += 'T1.associated_post_id = T'+str(num_tags)+'.associated_post_id AND '
+            sql_statement += 'T1.associated_post_id = T'+str(num_tags)+'.associated_post_id AND '
             num_tags += 1
         num_tags = 1
         while num_tags <= len(tags):
             if num_tags == len(tags):
-                sql_statement += 'T'+str(num_tags)+'.tag = '+tags[num_tags-1]+') '
+                sql_statement += "T"+str(num_tags)+".tag = '"+tags[num_tags-1]+"') "
             else:
-                sql_statement ++ 'T'+str(num_tags)+'.tag = '+tags[num_tags-1]+' AND '
+                sql_statement += "T"+str(num_tags)+".tag = '"+tags[num_tags-1]+"' AND "
             num_tags += 1
         if has_media:
             sql_statement += ' AND has_media = 1 '
         if accepted:
             sql_statement += ' AND solved = 1'
     elif len(tags) == 1:
-        sql_statement += ' AND post_id = (SELECT T1.associated_post_id FROM '
-        sql_statement += 'overflow_tag T1 WHERE T1.tag = ' + tags[0] + ')'
+        sql_statement += ' AND post_id IN (SELECT T1.associated_post_id FROM '
+        sql_statement += "overflow_tag T1 WHERE T1.tag = '" + tags[0] + "')"
         if has_media:
             sql_statement += ' AND has_media = 1'
         if accepted:
@@ -59,7 +56,7 @@ def create_search_query(tags, has_media, accepted, query, sort_by, timestamp):
     if query != '': 
         sql_statement += " AND MATCH (title,body) AGAINST ('"+ query + "' IN BOOLEAN MODE)" 
     if sort_by == 'timestamp':
-       sql_statement =+ ' ORDER BY time_added DESC;' 
+       sql_statement += ' ORDER BY time_added DESC;' 
     else:
         sql_statement += ' ORDER BY score DESC;'
     #print (sql_statement) 
