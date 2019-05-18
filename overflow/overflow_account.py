@@ -38,9 +38,9 @@ def add_user(request):
                 return JsonResponse(data, status=401)
             # Make sure email is valid first, if not then exception is thrown
             validate_email(email)
-            new_account = Account.objects.create(username=username, password=password, email=email,verification_key=random_key)
+            new_account = Account.objects.create(username=username, password=password, email=email,verification_key='abracadabra')
             data = {'status': 'OK', 'error':''}
-            message = 'validation key: <' + random_key + '>'
+            message = 'validation key: <abracadabra>'
             # send a verification email out to the email of the new user
             sent_message = send_mail('Verification key', message, 'ubuntu@helloworld.cse356.compas.cs.stonybrook.edu', [email], fail_silently=False) 
             if sent_message == 0:
