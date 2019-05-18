@@ -40,7 +40,7 @@ def create_search_query(tags, has_media, accepted, query, sort_by, timestamp):
         if has_media:
             sql_statement += ' AND has_media = 1 '
         if accepted:
-            sql_statement += ' AND solved = 1'
+            sql_statement += ' AND solved = 1 '
     elif len(tags) == 1:
         sql_statement += ' AND post_id IN (SELECT T1.associated_post_id FROM '
         sql_statement += "overflow_tag T1 WHERE T1.tag = '" + tags[0] + "')"
@@ -65,6 +65,7 @@ def create_search_query(tags, has_media, accepted, query, sort_by, timestamp):
 
 @csrf_exempt
 def add_question(request):
+    new_post = None
     if 'username' in request.session:
         try:
             # Get the appropriate data from json POST request form
@@ -82,17 +83,19 @@ def add_question(request):
             # Get the account associated with the current user's session
             account = Account.objects.get(username=request.session['username'])
             timeadded = math.floor(datetime.datetime.utcnow().timestamp() - 14400)
-            new_post = Post.objects.create(poster=account, title=title, body=body, time_added=timeadded)
             if media != None:
+                new_post = Post.objects.create(poster=account, title=title, body=body, time_added=timeadded, has_media=True)
                 try:
                     for ids in media:
-                        retrieved_media = Media.objects.get(file_id = ids, uploader=account) 
-                        QuestionMedia.objects.create(question=new_post, media=retrieved_media) 
+                        retrieved_media = Media.objects.get(file_id = ids, uploader=account)
+                        QuestionMedia.objects.create(question=new_post, media=retrieved_media)
                 except Exception as e:
-                    print (e) 
+                    print (e)
                     data = {'status':'error', 'error':'One of the media files either does not belong to you or does not exist'}
-                    new_post.delete() 
-                    return JsonResponse(data, status=401) 
+                    new_post.delete()
+                    return JsonResponse(data, status=401)
+            else:
+                new_post = Post.objects.create(poster=account, title=title, body=body, time_added=timeadded) 
             # Add a new question to the database with user account associated with the question
             i = 1
             for tag in tags:
@@ -213,8 +216,8 @@ def up_or_downvote_question(request, title):
     upvote = True
     if request.method == 'POST':
         if 'username' in request.session:
-            user = Accounts.objects.get(username = request.session['username'])
-            question = Post.objects.get(slug = title).prefetch_related('poster')  
+            user = Account.objects.get(username = request.session['username'])
+            question = Post.objects.get(slug = title)  
             json_data = json.loads(request.body) 
             upvote = json_data['upvote'] 
             found_upvote = QuestionUpvotes.objects.filter(upvoter = user, question = question) 
@@ -259,8 +262,8 @@ def up_or_downvote_question(request, title):
                         question.poster.save() 
                     question.save() 
                     QuestionDownvotes.objects.create(downvoter=user, question=question) 
-                data = {'status' : 'OK'} 
-                return JsonResponse(data) 
+            data = {'status' : 'OK'} 
+            return JsonResponse(data) 
         else:
             data = {'status' : 'error'} 
             return JsonResponse(data, status=401) 
@@ -314,7 +317,7 @@ def up_or_downvote_answer(request, url):
         if 'username' in request.session:
             try:
                 json_data = json.loads(request.body)
-                comment = Comment.objects.get(comment_url=url).prefetch_related('poster') 
+                comment = Comment.objects.get(comment_url=url) 
                 user = Account.objects.get(username=request.session['username']) 
                 upvote = json_data['upvote']
                 found_upvote = CommentUpvotes.objects.filter(answer=comment, upvoter=user) 
@@ -349,7 +352,7 @@ def up_or_downvote_answer(request, url):
                         CommentDownvotes.objects.create(answer=comment, downvoter=user) 
                         comment.score -= 1
                         if comment.poster.reputation > 1:
-                            comment.poster.reputation += 1
+                            comment.poster.reputation -= 1
                             comment.poster.save() 
                         comment.save()
                 data['status'] = 'OK'
@@ -367,14 +370,22 @@ def up_or_downvote_answer(request, url):
 def accept_comment(request, url):
     if request.method == 'POST':
         if 'username' in request.session:
-            answer = Comment.objects.filter(comment_url=url).prefetch_related('post') 
-            if answer.post.poster.username != request.session['username']:
-                data = {'status': 'error'}
-                return JsonResponse(data, status=401) 
-            answer.accepted = True
-            answer.save() 
-            data = {'status':'OK'}
-            return JsonResponse(data) 
+            try:
+                answer = Comment.objects.get(comment_url=url) 
+                question = answer.post
+                if answer.post.poster.username != request.session['username'] or question.solved:
+                    data = {'status': 'error'}
+                    return JsonResponse(data, status=401)
+                question.solved = True
+                question.save()
+                answer.accepted = True
+                answer.save() 
+                data = {'status':'OK'}
+                return JsonResponse(data) 
+            except Exception as e:
+                print(e) 
+                data = {'status':'error'}
+                return JsonResponse(data, status_code=403) 
         else:
             return HttpResponse(status_code=403) 
 
@@ -462,7 +473,7 @@ def search(request):
             associated_comments = Comment.objects.filter(post = question, accepted = True)
             accepted_answer_id = None
             if associated_comments:
-                accepted_answer_id = associated_comments.comment_url
+                accepted_answer_id = associated_comments[0].comment_url
             else:
                 accepted_answer_id = 'Null'
             media = []
