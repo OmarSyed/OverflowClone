@@ -1,26 +1,23 @@
-from django.shortcuts import render
-from django.http import HttpResponse, JsonResponse
-from django.core.mail import send_mail
-from django.conf import settings
-from django.views.decorators.csrf import csrf_exempt
-from django.core.validators import validate_email
-from .models import Account, Post, Comment, Tag, ViewerAccounts, ViewerIP
 import json
 from random import choice
 from string import ascii_uppercase
-import math  
-import datetime
+
+from django.core.mail import send_mail
+from django.core.validators import validate_email
+from django.http import HttpResponse, JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+
+from .models import Account, Post, Comment
+
 
 def check_if_account_exists(user_name, emailaddr):
     if Account.objects.filter(username=user_name) or Account.objects.filter(email= emailaddr):
         return True
     return False
 
-@csrf_exempt
 def default(request):
     return HttpResponse("Hello, welcome to the front page")
 
-@csrf_exempt
 def add_user(request):
     if request.method == 'POST':
         # Get the appropriate json request data
