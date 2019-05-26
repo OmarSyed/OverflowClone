@@ -10,6 +10,13 @@
 	</head>
 	
 	<body>
-		
+		{% block content %} 
+		<h2> Sign up </h2> 
+		<form>
+			{% csrf_token %}
+			{{ form.as_p }}
+			<button type="submit"> Log in </button>
+		</form> 
+		{% endblock %}
 	</body>
 </html>
