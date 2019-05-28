@@ -1,18 +1,15 @@
+from django.contrib.auth.models import User
 from django.db import models
 from django.urls import reverse
 from django.template.defaultfilters import slugify
-#from django_unixdatetimefield import UnixDateTimeField
 from django.utils.crypto import get_random_string
 
 # Create your models here.
 class Account(models.Model):
-    account_id = models.AutoField(primary_key=True)
-    username = models.CharField(max_length=255)
-    password = models.CharField(max_length=255)
-    email = models.EmailField()
-    verification_key = models.CharField(max_length=12, default='abracadabraa') 
+    account = models.OneToOneField(User, on_delete=models.CASCADE)
+    verification_id = models.CharField(max_length=12)
     verified = models.BooleanField(default=False)
-    reputation = models.IntegerField(default=1) 
+    reputation = models.IntegerField(default=1)
 
 class Post(models.Model):
     post_id = models.AutoField(primary_key=True) 

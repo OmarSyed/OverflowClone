@@ -11,7 +11,9 @@ https://docs.djangoproject.com/en/2.1/ref/settings/
 """
 
 import os
+from dotenv import load_dotenv
 
+load_dotenv() 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -25,9 +27,12 @@ SECRET_KEY = 'uz-_xgos&ww4$#k=h8-!iy!^dc-ho!i%_lqe@#&571umd1i6kh'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['152.44.40.66']
+ALLOWED_HOSTS = ['18.221.54.47', '0.0.0.0']
 
-
+DB_NAME = os.getenv('DB_NAME')
+DB_IP = os.getenv('DB_IP')
+DB_USER = os.getenv('DB_USER') 
+DB_PASS = os.getenv('DB_PASS') 
 
 # Application definition
 
@@ -56,7 +61,7 @@ ROOT_URLCONF = 'cloudapp.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': ['../static/templates'],
+        'DIRS': ['/home/ubuntu/OverflowClone/static/templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -78,10 +83,10 @@ WSGI_APPLICATION = 'cloudapp.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME':'forum_data', 
-        'USER': 'root',
-        'PASSWORD': 'SeaWolv3s!',
-        'HOST': '152.44.33.149',
+        'NAME': DB_NAME, 
+        'USER': DB_USER,
+        'PASSWORD': DB_PASS,
+        'HOST': DB_IP,
         'PORT':'3306',
     }
 }
@@ -122,10 +127,10 @@ USE_TZ = True
 #Email configuration
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_USE_TLS = True
-EMAIL_HOST = 'helloworld.cse356.compas.cs.stonybrook.edu'
-#EMAIL_HOST_USER = 'ubuntu@helloworld.cse356.compas.cs.stonybrook.edu'
-#EMAIL_HOST_PASSWORD = 'SeaWolv3s'
-EMAIL_PORT = 25
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_HOST_USER = 'johnsmith5427689'
+EMAIL_HOST_PASSWORD = 'pysfxgdjdbaibwrd'
+EMAIL_PORT = 587
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/2.1/howto/static-files/

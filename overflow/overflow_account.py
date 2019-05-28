@@ -1,14 +1,13 @@
+
 import json
-from random import choice
-from string import ascii_uppercase
-
 from django.core.mail import send_mail
-from django.core.validators import validate_email
 from django.http import HttpResponse, JsonResponse
+from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
-
+from .forms import SignUpForm
+from django.utils.crypto import get_random_string
+from .credentials import email_user, email_pass
 from .models import Account, Post, Comment
-
 
 def check_if_account_exists(user_name, emailaddr):
     if Account.objects.filter(username=user_name) or Account.objects.filter(email= emailaddr):
@@ -20,37 +19,21 @@ def default(request):
 
 def add_user(request):
     if request.method == 'POST':
-        # Get the appropriate json request data
-        json_data = json.loads(request.body)
-        username = json_data['username']
-        password = json_data['password']
-        email = json_data['email']
-        print(json_data)
-        try:
-            # Create random key 
-            random_key = ''.join(choice(ascii_uppercase) for i in range(12)) 
-            # Check to see if account with the same username or email already exists
-            if check_if_account_exists(username, email):
-                data = {'status' :'error', 'error': 'Account already exists'}
-                return JsonResponse(data, status=401)
-            # Make sure email is valid first, if not then exception is thrown
-            validate_email(email)
-            new_account = Account.objects.create(username=username, password=password, email=email,verification_key='abracadabra')
-            data = {'status': 'OK', 'error':''}
-            message = 'validation key: <abracadabra>'
-            # send a verification email out to the email of the new user
-            sent_message = send_mail('Verification key', message, 'ubuntu@helloworld.cse356.compas.cs.stonybrook.edu', [email], fail_silently=False) 
-            if sent_message == 0:
-                data['status'] = 'error'
-                data['error'] = 'Error sending out email'
-                print(data['error']) 
-                return JsonResponse(data, status=403)
-            print(data)
-            return JsonResponse(data)
-        except Exception as e:
-            print(e)
-            response_data = {'status': 'error', 'error': 'Unable to create account'}
-            return JsonResponse(response_data, status=401)
+        form = SignUpForm(request.POST) 
+        if form.is_valid():
+            user = form.save() 
+            user.is_active = False
+            verification_id = get_random_string(length=12) 
+            email = form.cleaned_data.get('email') 
+            send_mail('Your verification code', 'Your verification code is '+verification_id+'; please enter this code at /verify',from_email='johnsmith5427689@gmail.com',recipient_list=[email])
+            print('line 29') 
+            Account.objects.create(account=user, verification_id = verification_id) 
+            return render(request, "verified.html", {'email':email}) 
+        else:
+            form = SignUpForm()
+    else:
+        form = SignUpForm() 
+    return render(request, 'login.html', {'form':form})
 
 @csrf_exempt
 def verify(request):
