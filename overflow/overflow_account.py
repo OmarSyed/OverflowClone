@@ -4,10 +4,13 @@ from django.core.mail import send_mail
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
-from .forms import SignUpForm
+from django.forms import Form
+from .forms import SignUpForm, VerificationForm, LogInForm
 from django.utils.crypto import get_random_string
 from .credentials import email_user, email_pass
 from .models import Account, Post, Comment
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth import authenticate, login, logout
 
 def check_if_account_exists(user_name, emailaddr):
     if Account.objects.filter(username=user_name) or Account.objects.filter(email= emailaddr):
@@ -15,7 +18,10 @@ def check_if_account_exists(user_name, emailaddr):
     return False
 
 def default(request):
-    return HttpResponse("Hello, welcome to the front page")
+    logged_in = False
+    if request.user.is_authenticated:
+        logged_in = True 
+    return render(request, "home.html", {'logged_in':logged_in})
 
 def add_user(request):
     if request.method == 'POST':
@@ -26,70 +32,80 @@ def add_user(request):
             verification_id = get_random_string(length=12) 
             email = form.cleaned_data.get('email') 
             send_mail('Your verification code', 'Your verification code is '+verification_id+'; please enter this code at /verify',from_email='johnsmith5427689@gmail.com',recipient_list=[email])
-            print('line 29') 
             Account.objects.create(account=user, verification_id = verification_id) 
-            return render(request, "verified.html", {'email':email}) 
+            return render(request, "verified.html", {'email':email, 'logged_in':False}) 
         else:
+            logged_in = False
             form = SignUpForm()
     else:
-        form = SignUpForm() 
-    return render(request, 'login.html', {'form':form})
+        form = SignUpForm()
+        logged_in = False
+        if request.user.is_authenticated:
+            print('User is signed in') 
+            logged_in = True
+            form = None
+            return render(request, 'signup.html', {'form': form, 'logged_in':logged_in})
+    return render(request, 'signup.html', {'form':form, 'logged_in':logged_in})
 
-@csrf_exempt
+
 def verify(request):
-    # Get the appropriate json data 
-    json_data = json.loads(request.body)
-    email = json_data['email']
-    key = json_data['key']
-    print(json_data)
-    try:
-        # Retrieve the account with the corresponding email and set verified field = true
-        account = Account.objects.get(email=email, verification_key=key)
-        account.verified = True
-        account.save()
-        data = {'status':'OK', 'error':''}
-        return JsonResponse(data)
-    except:
-        data = {'status':'error', 'error': 'Could not verify backdoor key'}
-        return JsonResponse(data, status=401)
+    if request.method == 'POST':
+        logged_in = False 
+        if request.user.is_authenticated:
+            logged_in = True 
+        form = VerificationForm(request.POST)
+        if form.is_valid():
+            email = form.cleaned_data['email']
+            verification_key = form.cleaned_data['key']
+            found_account = Account.objects.filter(verification_id = verification_key) 
+            if found_account: 
+                found_account[0].account.is_active = True 
+                username = found_account[0].account.username
+                return render(request, 'verify_success.html', {'email':email, 'username':username, 'logged_in':logged_in}) 
+            else:
+                print('enter valid email or verification key') 
+                form = VerificationForm()
+        else:
+            form = VerificationForm() 
+    else:
+        logged_in = False 
+        if request.user.is_authenticated:
+            logged_in = True
+        form = VerificationForm() 
+    return render(request, 'verify.html', {'form':form, 'logged_in':logged_in}) 
 
-@csrf_exempt
 def log_in(request):
     if request.method == 'POST':
-        # Check first whether the username is already logged in 
-        if 'username' in request.session:
-            data = {'status':'error', 'error': 'You are logged in already'}
-            return JsonResponse(data, status=401) 
-        # Retrieve appropriate json data 
-        json_data = json.loads(request.body)
-        username = json_data['username']
-        password = json_data['password']
-        try:
-            # Retrieve the account with the associated email 
-            account = Account.objects.get(username=username, password=password)
-            # If account is not verified then return error response
-            if not account.verified: 
-                response_data = {'status': 'error', 'error' : 'Account is not verified, please check email and verify account.'}
-                return JsonResponse(response_data, status=401)
-            else:
-                request.session['username'] = username
-                response_data = {'status' : 'OK', 'error': ''}
-                return JsonResponse(response_data)
-        except:
-            response_data = {'status': 'error', 'error' : 'Account does not exist'}
-            return JsonResponse(response_data)
+        logged_in = False
+        # Check first whether the username is already logged in
+        if request.user.is_authenticated: 
+            msg = 'You are already logged in'
+            logged_in = True
+            return render(request, 'signin.html', {'logged_in':logged_in, 'msg':msg})
+        form = LogInForm(request.POST)  
+        username = request.POST['username'] 
+        password = request.POST['password'] 
+        user = authenticate(username=username, password=password) 
+        if user is not None: 
+            login(request, user) 
+            return render(request, 'home.html', {'logged_in':True})
+        else:
+            return render(request, 'signin.html', {'logged_in':False, 'msg':'Incorrect username or password'})
+    else:
+        logged_in = False
+        if request.user.is_authenticated:
+            logged_in = True
+            return render(request, 'signin.html', {'logged_in':logged_in, 'msg':'You are logged in already'})
+        form = LogInForm() 
+        return render(request, 'signin.html', {'logged_in': logged_in, 'form':form}) 
 
-@csrf_exempt
+@login_required
 def log_out(request):
-    if request.method == 'POST':
-        # Delete the username from request.session to end session 
-        try:
-            del request.session['username']
-            data = {'status': 'OK', 'error': ''}
-            return JsonResponse(data)
-        except:
-            data = {'status': 'error', 'error': 'You are logged out already. '}
-            return JsonResponse(data, status=401)
+    logout(request)
+    logged_in = False
+    #print('username : '+request.user.username) 
+    return render(request, 'home.html', {'logged_in':False})  
+
 
 @csrf_exempt
 def get_user(request, username):

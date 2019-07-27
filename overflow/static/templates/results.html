@@ -1,0 +1,17 @@
+{% extends "base.html" %} 
+
+{% block content %} 
+
+	{% for question in questions %} 
+		<a href={% url 'exact_post' title=question.slug %}> 
+			<div class="result-container">
+				<h5> Posted: {{ question.date_posted }} </h5> 
+				<h5> Score: {{ question.score }} </h5> 
+				<h5> Posted by: {{ question.poster.username }} </h5> 
+				<h5> Views: {{ question.view_count }} </h5> 
+				<h4> <b> {{ question.title }} </b> </h4>  
+			</div>
+		</a> 
+	{% endfor %} 
+
+{% endblock content %} 

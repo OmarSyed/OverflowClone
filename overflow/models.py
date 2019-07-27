@@ -13,14 +13,14 @@ class Account(models.Model):
 
 class Post(models.Model):
     post_id = models.AutoField(primary_key=True) 
-    poster = models.ForeignKey(Account, on_delete=models.CASCADE)
+    poster = models.ForeignKey(User, on_delete=models.CASCADE)
     title = models.CharField(max_length=200)
     body = models.TextField() 
     views = models.IntegerField(default=0)
     answer_count = models.IntegerField(default=0)
     score = models.IntegerField(default=0)
     slug = models.SlugField(max_length=255)
-    time_added = models.IntegerField(default=0)  
+    time_added = models.DateTimeField(auto_now_add=True)   
     has_media = models.BooleanField(default=False) 
     solved = models.BooleanField(default=False) 
 
@@ -41,11 +41,11 @@ class Post(models.Model):
 class Comment(models.Model):
     comment_id = models.AutoField(primary_key=True)
     comment_url = models.CharField(max_length=15, null=False, default=get_random_string(length=15))
-    poster = models.ForeignKey(Account, on_delete=models.CASCADE) 
+    poster = models.ForeignKey(User, on_delete=models.CASCADE) 
     post = models.ForeignKey(Post, on_delete=models.CASCADE)
     comment = models.TextField() 
     score = models.IntegerField(default=0) 
-    time_posted = models.IntegerField(default=0) 
+    time_posted = models.DateTimeField(auto_now_add=True) 
     accepted = models.BooleanField(default=False) 
 
 # Maintain a table of tags associated with individual posts
@@ -60,34 +60,34 @@ class ViewerIP(models.Model):
 
 # Accounts that have viewed a question
 class ViewerAccounts(models.Model):
-    viewer = models.ForeignKey(Account, on_delete=models.CASCADE) 
+    viewer = models.ForeignKey(User, on_delete=models.CASCADE) 
     post = models.ForeignKey(Post, on_delete=models.CASCADE)
 
 #Maps question upvotes to accounts
 class QuestionUpvotes(models.Model):
-    upvoter = models.ForeignKey(Account, on_delete = models.CASCADE) 
+    upvoter = models.ForeignKey(User, on_delete = models.CASCADE) 
     question = models.ForeignKey(Post, on_delete = models.CASCADE) 
 
 #Maps question downvotes to accounts
 class QuestionDownvotes(models.Model):
-    downvoter = models.ForeignKey(Account, on_delete = models.CASCADE)
+    downvoter = models.ForeignKey(User, on_delete = models.CASCADE)
     question = models.ForeignKey(Post, on_delete = models.CASCADE) 
 
 #Maps comment upvotes to accounts
 class CommentUpvotes(models.Model):
-    upvoter = models.ForeignKey(Account, on_delete= models.CASCADE) 
+    upvoter = models.ForeignKey(User, on_delete= models.CASCADE) 
     answer = models.ForeignKey(Comment, on_delete = models.CASCADE) 
 
 #Maps comment downvotes to accounts
 class CommentDownvotes(models.Model):
-    downvoter = models.ForeignKey(Account, on_delete = models.CASCADE)
+    downvoter = models.ForeignKey(User, on_delete = models.CASCADE)
     answer = models.ForeignKey(Comment, on_delete = models.CASCADE) 
 
 #Media metadata
 class Media(models.Model):
     file_id = models.CharField(max_length=100) 
     file_name = models.TextField() 
-    uploader = models.ForeignKey(Account, on_delete = models.CASCADE)
+    uploader = models.ForeignKey(User, on_delete = models.CASCADE)
 
 #Media associated with questions
 class QuestionMedia(models.Model):

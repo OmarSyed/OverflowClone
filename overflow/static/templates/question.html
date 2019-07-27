@@ -1,0 +1,132 @@
+{% extends 'base.html' %} 
+
+{% block content %} 
+	<div class='question-container'>
+		<label> Posted by: {{ question.poster.username }} </label> <span id="upvote" style="font-size: 40px; float: right; "> &uarr; </span> <br>
+		<label> View count: {{ question.views }} </label> <br>
+		<label> Score: {{ question.score }} </label>
+			<script> 
+				$('#upvote').click(function(){
+					$.ajax({
+						type: "POST",
+						url: "{% url 'up_or_downvote_question' title=question.slug %}", 
+						data: JSON.stringify({
+							'upvote': 1
+						}), 
+						contentType: "application/json",
+						success: function( data  ){
+							var upvote_color = $('#upvote').css("color"); 
+							if (upvote_color === "black"){
+								$('#upvote').css('color', 'red'); 
+							}
+							else{
+								$('#upvote').css('color', 'black'); 
+							}
+							$('#downvote').css('color', 'black'); 
+						}
+					})
+				});
+				$('#downvote').click(function(){
+					$.ajax({
+						type: "POST",
+						url: "{% url 'up_or_downvote_question' title=question.slug %}", 
+						data: {
+							upvote: 0
+						},
+						contentType: "application/json",
+						success: function ( data ){
+							var downvote_color = $('#downvote').css("color"); 
+							if (downvote_color === "black"){
+								$('#downvote').css('color', 'red'); 
+							}
+							else{
+								$('#downvote').css('color', 'black'); 
+							}
+							$('#upvote').css('color', 'black'); 
+						}
+					})
+				}); 
+			</script>
+		</h2><span id="downvote" style="font-size: 40px; float: right; clear: right;"> &darr; </span>
+		<h2> {{ question.title }} </h2>
+                <p> {{ question.body }} </p> 
+		<div class="tags"> 		
+			<label> Tags: </label>
+			{% for tag in tags %} 
+				<span> {{ tag }} </span>
+			{% endfor %} 
+		</div>
+	</div>
+	<br>
+	{% if logged_in %} 
+		<div class='welcome-container'>
+			<form method="post" action={% url 'add_comment' title=question.slug %}> 
+				<label position="center"> Title </label><br>  
+				<input type="text" id="title"> </input> <br> 
+				<label position="center"> Body </label> <br>  
+				<textarea rows="4" cols="70" id="comment">
+				</textarea>
+				<button type="submit"> Post </button> 
+			</form>
+		</div> 
+	{% endif %} 
+	{% if comment != None %}
+		{% for comment in comments %}
+        		<div class='comment-container'>
+				<label> Posted by: {{ comment.poster.username }} </label>
+				<label> Score: {{ comment.score }} </label>
+				<span id="upvote-{{ comment.url }}" style="font-size: 20px; float: right;"> &uarr; </span> 
+				<label> {{ comment.title }} </label>
+				<span id="downvote-{{ comment.url }}" style="font-size: 20px; float: right; clear: right;"> &darr; </span>
+				<p> {{ comment.body }} </p>
+                	</div>
+			
+			<script> 
+				$('#upvote-{{ comment.url }}').click(function(){
+					$.ajax(
+					{
+						type: "POST",
+						url: "{% url 'up_or_downvote_comment' url=comment.url %}", 
+						data: {
+							upvote: 1	
+						},
+						contentType: "application/json",
+						success: function (data) {
+							var upvote_color = $('#upvote-{{ comment.url }}').css("color"); 
+							if (upvote_color === "black"){
+								$('#upvote-{{ comment.url }}').css('color', 'red'); 
+							}
+							else{
+								$('#upvote-{{ comment.url }}').css('color', 'black'); 
+							}
+							$('#downvote-{{ comment.url }}').css('color', 'black'); 
+						}
+					})
+				});
+				$('#downvote-{{ comment.url }}').click(function(){
+					$.ajax(
+						{
+							type: "POST",
+							url: "{% url 'up_or_downvote_comment' url=comment.url %}", 
+							data: {
+								upvote: 0
+							},
+							contentType: "application/json",
+							success: function( data ) 
+							{
+								var downvote_color = $('#downvote-{{ comment.url }}').css("color"); 
+								if (downvote_color === "red"){
+									$('#downvote-{{ comment.url }}').css('color', 'black'); 												}
+								else {
+									$('#downvote-{{ comment.url }}').css('color', 'red'); 
+								}
+								$('#upvote-{{ comment.url }}').css('color', 'black');
+							}	
+						})
+				}); 
+			</script> 
+        	{% endfor %}
+	{% endif %} 
+
+
+{% endblock %}
