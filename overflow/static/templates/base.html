@@ -19,7 +19,10 @@
 		
 		{% if not logged_in %} 
 			<div id="login"> 
-				<li> <a href="{% url 'login' %}"> Login </a> </li>
+				<li> <a href=""> Login </a> </li>
+				<li> <a class="dropdown-content" href="{% url 'login' %}"> Sign in </a> </li> 
+				<li> <a class="dropdown-content" href=""> Forgot username </a> </li> 
+				<li> <a class="dropdown-content" href=""> Forgot password </a> </li> 
 				<li> <a href="{% url 'adduser' %}"> Sign up </a> </li>
 			</div>	
 		{% else %}
@@ -27,7 +30,7 @@
                		<li> <a href=""> Answer </a> </li>
 			<div id="login"> 
 				<li> <a href="{% url 'logout' %}"> Logout </a> </li> 
-			</div> 
+			</div>
 		{% endif %} 
 
 		<div id="searchbar">

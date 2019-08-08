@@ -42,6 +42,13 @@ body {
 	border: none;
 }
 
+.dropdown-content {
+	display: none; 
+	background-color: black; 
+	color: white; 
+	
+}
+
 #login {
 	float: right;
 }
@@ -56,6 +63,9 @@ body {
 	background-color: gray; 
 }
 
+#login a:hover .dropdown-content{
+	display: block; 
+}
 #login a.active {
 	background-color: gray; 
 }
