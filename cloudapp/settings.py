@@ -27,12 +27,12 @@ SECRET_KEY = 'uz-_xgos&ww4$#k=h8-!iy!^dc-ho!i%_lqe@#&571umd1i6kh'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['18.221.54.47', '0.0.0.0']
+ALLOWED_HOSTS = ['18.221.54.47', '0.0.0.0', 'localhost']
 
-DB_NAME = os.getenv('DB_NAME')
-DB_IP = os.getenv('DB_IP')
-DB_USER = os.getenv('DB_USER') 
-DB_PASS = os.getenv('DB_PASS') 
+DB_NAME = 'forum_data'
+DB_IP = '127.0.0.1'
+DB_USER = 'root' 
+DB_PASS = 'omarsyed123' 
 
 # Application definition
 
