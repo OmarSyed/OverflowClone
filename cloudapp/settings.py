@@ -27,7 +27,7 @@ SECRET_KEY = 'uz-_xgos&ww4$#k=h8-!iy!^dc-ho!i%_lqe@#&571umd1i6kh'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['18.221.54.47', '0.0.0.0', 'localhost']
+ALLOWED_HOSTS = ['18.221.54.47', '0.0.0.0', '127.0.0.1']
 
 DB_NAME = 'forum_data'
 DB_IP = '127.0.0.1'
@@ -61,7 +61,7 @@ ROOT_URLCONF = 'cloudapp.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': ['/home/ubuntu/OverflowClone/overflow/static/templates'],
+        'DIRS': [os.path.join(BASE_DIR,'overflow/static/templates')],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
