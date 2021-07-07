@@ -1,0 +1,162 @@
+body {
+	background-color: gray; 
+	margin: 0;
+}
+
+
+.navbar {
+	background-color: black;
+	overflow: hidden;
+
+}
+
+.navbar li {
+	display: inline;
+}
+.navbar a{
+	text-decoration: none;
+	font-family: Arial; 
+	float: left;
+	display: block;
+	color: white;
+	text-align: center;
+	padding: 14px 16px;
+	text-decoration: none;
+	font-size: 17px; 
+	list-style: none;
+	position: sticky;  
+}
+
+.navbar a.active{
+	background-color: green; 
+}
+
+.navbar a:hover{
+	background-color: gray; 
+}
+
+.navbar input[type=text]{
+	padding: 6px;
+	margin-top: 8px;
+	font-size: 17px;
+	border: none;
+}
+
+.dropdown-content {
+	display: none; 
+	background-color: black; 
+	color: white; 
+	
+}
+
+#login {
+	float: right;
+}
+
+#login a {
+	text-decoration: none; 
+	font-family: Arial; 
+	color: white;
+}
+
+#login a:hover{
+	background-color: gray; 
+}
+
+#login a:hover .dropdown-content{
+	display: block; 
+}
+#login a.active {
+	background-color: gray; 
+}
+
+#login ul{
+	list-style-type: none;
+	display: inline;
+}
+
+#searchbar {
+	float: right; 
+}
+
+#searchbar button {
+	padding: 6px;
+	margin-top: 8px;
+	font-size: 17px;
+	border: none;
+}
+
+#hello{
+	font-family: "Brush Script MT";
+	font-size: 38px; 
+	text-align: center; 
+}
+
+.tags {
+	word-spacing: 10px; 
+}
+.tag {
+	background-color: #696969; 
+}
+
+.welcome-container {
+	background-color: lightgray; 
+	border-radius: 10px; 
+	width: 550px;
+	font-family: Arial; 
+	margin: 0 auto;
+}
+
+.question-container {
+	background-color: lightgray;
+       	border-radius: 10px; 
+	width: 550px; 
+	font-family: Arial; 
+	margin: 0 auto; 	
+}
+.question-container label {
+	text-align: left; 
+
+}
+.question-container span {
+	text-align: right; 
+}
+
+.question-container p {
+	text-align: center; 
+}
+
+.question-container .upvote{
+	float: right;
+}
+.question-container .downvote{
+	float: right;
+}
+
+.comment-container {
+	background-color: lightgray;
+        border-radius: 10px;
+        width: 750px;
+        font-family: Arial;
+        margin: 0 auto;
+}
+
+.comment-container label{
+	text-align: left;
+}
+
+.comment-container p {
+	text-align: center;
+}
+
+.comment-container .vote {
+	top: 0;
+	right: 0; 
+}
+
+.upvote {
+	float: right; 
+}
+.downvote {
+	float: right; 
+}

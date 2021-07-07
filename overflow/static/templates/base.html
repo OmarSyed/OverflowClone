@@ -1,0 +1,51 @@
+<!doctype html> 
+<html>
+<head>
+	{% load staticfiles %}
+	<link rel="stylesheet" type="text/css" href="{% static 'templates/style.css' %}">
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.0/jquery.min.js"></script>
+	<script> 
+		$(document).ready(function(){
+			$(".welcome-container").hide();
+			$(".welcome-container").fadeIn("slow"); });
+	</script>
+</head>
+
+<body>
+	<ul class="navbar">
+		<li> <a href="{% url 'default' %}"> Home </a> </li>
+		<li> <a href=""> Popular </a> </li>
+		<li> <a href=""> Discover </a> </li>
+		
+		{% if not logged_in %} 
+			<div id="login"> 
+				<li> <a href=""> Login </a> </li>
+				<li> <a class="dropdown-content" href="{% url 'login' %}"> Sign in </a> </li> 
+				<li> <a class="dropdown-content" href=""> Forgot username </a> </li> 
+				<li> <a class="dropdown-content" href=""> Forgot password </a> </li> 
+				<li> <a href="{% url 'adduser' %}"> Sign up </a> </li>
+			</div>	
+		{% else %}
+			<li> <a href="{% url 'add_question' %}"> Ask </a> </li>
+               		<li> <a href=""> Answer </a> </li>
+			<div id="login"> 
+				<li> <a href="{% url 'logout' %}"> Logout </a> </li> 
+			</div>
+		{% endif %} 
+
+		<div id="searchbar">
+			<form method="post" action="{% url 'search' %}">
+				<input name="search_query" type="text" placeholder="Search...">
+				<button type="submit" name="submit"> Submit </button>
+			</form> 
+		</div> 
+	</ul>
+
+	<div class="main">
+		{% block content %}
+		{% endblock %}
+	</div> 
+	
+
+</body>
+</html>

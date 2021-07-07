@@ -1,0 +1,17 @@
+{% extends "base.html" %} 
+{% block content %} 
+<div class="welcome-container">
+	{% if not logged_in %} 
+	<form method="post"> 	
+		<h2> Log in </h2> 
+		{% csrf_token %}
+		{{ form.as_p }}
+		<button type="submit"> Log in </button> 
+	</form> 
+	{% else %} 
+		<h3> {{ msg }} </h3> 
+	{% endif %} 
+
+</div> 
+	
+{% endblock %}
